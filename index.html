@@ -519,7 +519,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     return '<div class="row"><label class="nm" for="' + id + '">' + esc(name) + '</label><span class="ctl">' + ctl + '</span></div>';
   }
   var GUIDE_MOV = ["Rate your level of effectiveness in a workout of each movement:", ["0 means you cannot do it at all", "1 to 5 means you would struggle in a WOD", "6 to 8 shows proficiency", "9 to 10 shows virtuosity"]];
-  var GUIDE_MOB = ["Rate each joint:", ["0 means you have pain when at rest", "1 to 5 means you have some level of discomfort when performing tasks", "6 to 8 shows proficient function with room for improvement", "9 to 10 shows full mobility and stability of the joint"]];
+  var GUIDE_MOB = ["Rate each joint:", ["0 means any pain, particularly at rest", "1 to 5 means you have some level of discomfort when performing tasks", "6 to 8 shows proficient function with room for improvement", "9 to 10 shows full mobility and stability of the joint"]];
   function guideHtml(g) {
     return '<div class="rate-guide"><b>' + esc(g[0]) + '</b><ul>' + g[1].map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + '</ul></div>';
   }
