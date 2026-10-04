@@ -181,6 +181,17 @@ fieldset.qq { border: 0; padding: 0; margin: 10px 0 0; min-width: 0; }
 fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weight: 600; }
 .opt { display: flex; gap: 9px; align-items: flex-start; padding: 4px 0; cursor: pointer; }
 .opt input { margin-top: 4px; accent-color: var(--accent); flex: none; }
+.mtimes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.mcol { border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 8px; padding: 8px 8px 10px; background: var(--surface); min-width: 0; }
+.mcol h4 { margin: 0 0 6px; font-family: var(--font-display); font-size: 1.05rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink); }
+.mcol .fl.tf { margin-top: 6px; }
+.mcol .fl.tf input { padding: 4px 6px; font-size: .85rem; }
+.bgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 8px; }
+.bgrid .bcol { border-top: 3px solid var(--accent); padding-top: 4px; min-width: 0; }
+.bgrid h4 { margin: 0 0 4px; font-family: var(--font-display); font-size: 1.05rem; letter-spacing: .06em; text-transform: uppercase; }
+.bgrid dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 10px; margin: 0; font-size: .86rem; }
+.bgrid dt { color: var(--muted); } .bgrid dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 340px) { .mtimes { grid-template-columns: minmax(0, 1fr); } }
 .times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin-top: 12px; }
 .qg .fl.notes { margin-top: 12px; }
 .nm small { color: var(--muted); font-weight: 400; font-size: .8rem; margin-left: 4px; }
@@ -403,7 +414,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       scores: exampleScores(), reps: reps,
       lifts: { "Snatch": 75, "Power Snatch": 65, "Hang Snatch": 66, "Overhead Squat": 90, "Clean": 100, "Power Clean": 88, "Hang Clean": 80, "Front Squat": 115, "Back Squat": 140, "Deadlift": 170, "Strict Press": 60, "Push Press": 80, "Push Jerk": 85, "Split Jerk": 90 },
       mobNotes: "Tight left ankle limits squat depth. Shoulders feel fine overhead.",
-      q: { gymReps: QOPT.gymReps[0], gymStyle: "Kipping", gymNotes: "Handles volume well, skills are the limiter.", rowFormat: QOPT.rowFormat[1], rowPref: "Row for calories", t500: "1:34", t1000: "3:20", row5k: "20:10", run1k: "4:15", run5k: "23:30", bike3k: "4:50", bike10k: "16:10", metNotes: "", liftPref: QOPT.liftPref[2], liftNotes: "" }
+      q: { gymReps: QOPT.gymReps[0], gymStyle: "Kipping", gymNotes: "Handles volume well, skills are the limiter.", rowFormat: QOPT.rowFormat[1], rowPref: "Row for calories", t500: "1:34", t1000: "3:20", row5k: "20:10", run400: "1:15", run1k: "4:15", run5k: "23:30", bike1k: "1:12", bike3k: "4:50", bike10k: "16:10", metNotes: "", liftPref: QOPT.liftPref[2], liftNotes: "" }
     });
   }
 
@@ -727,8 +738,21 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       if (got.length < 2) return;
       var a = got[0], b = got[got.length - 1], d = a.i - b.i, hd = g[0] + " " + a.d + " against " + b.d;
       var both = a.d + " " + MET_LEVELS[a.i] + ", " + b.d + " " + MET_LEVELS[b.i];
-      if (d >= 1) out.push({ head: hd, text: "Aerobic power is ahead of aerobic endurance (" + both + "). Suggestion: build the longer efforts with steady, sustained work and longer intervals so the " + b.d + " catches up with the " + a.d + "." });
-      else if (d <= -1) out.push({ head: hd, text: "Aerobic endurance is ahead of aerobic power (" + both + "). Suggestion: build the shorter efforts with hard intervals near the " + a.d + " pace so the " + a.d + " catches up with the " + b.d + "." });
+      if (d >= 1) out.push({ head: hd, text: "Aerobic power is ahead of aerobic capacity (" + both + "). Suggestion: build the longer efforts with steady, sustained work and longer intervals so the " + b.d + " performance (aerobic capacity) aligns with your " + a.d + " performance (aerobic power)." });
+      else if (d <= -1) out.push({ head: hd, text: "Aerobic capacity is ahead of aerobic power (" + both + "). Suggestion: build the shorter efforts with hard intervals near the " + a.d + " pace so the " + a.d + " performance (aerobic power) aligns with your " + b.d + " performance (aerobic capacity)." });
+    });
+    /* anaerobic speed reserve: shortest test (anaerobic speed) against the aerobic power and capacity tests, compared as speeds. Bands are provisional. */
+    var ASR = { small: 1.10, large: 1.30 };
+    [["Run", Q.run400, 400, "400m", Q.run1k, 1000, "1km", Q.run5k, 5000, "5km"],
+     ["Airbike", Q.bike1k, 1000, "1000m", Q.bike3k, 3000, "3km", Q.bike10k, 10000, "10km"]].forEach(function (g) {
+      var ts = parseTime(g[1]), tp = parseTime(g[4]), tc = parseTime(g[7]);
+      if (!ts || !tp) return;
+      var sp = g[2] / ts, rp = sp / (g[5] / tp), rc = tc ? sp / (g[8] / tc) : null;
+      var both = g[0] + " " + g[3] + " speed is " + rp.toFixed(2) + "× your " + g[6] + " (aerobic power) speed" + (rc ? " and " + rc.toFixed(2) + "× your " + g[9] + " (aerobic capacity) speed" : "") + ". ";
+      var hd = g[0] + " anaerobic speed reserve";
+      if (rp < 1) out.push({ head: hd, text: both + "The short test is slower than the longer test, so check the times." });
+      else if (rp < ASR.small) out.push({ head: hd, text: both + "Speed reserve is small, so top-end speed is the limiter. Suggestion: add short, fast efforts and sprint work so the " + g[3] + " performance (anaerobic speed) pulls clear of your " + g[6] + " performance (aerobic power)." });
+      else if (rp > ASR.large) out.push({ head: hd, text: both + "Speed reserve is large: there is speed in hand, but holding pace at aerobic power and capacity is costly. Suggestion: build aerobic power and capacity with steady work and longer intervals so more of that speed becomes usable." });
     });
     if (lvls.length >= 2 && lvls.every(function (x) { return x <= 1; })) {
       out.unshift({ head: "Aerobic base", text: "Every benchmark entered is Novice or Intermediate, so general aerobic base is the main limiter. Regular steady-state work comes before specific interval work." });
@@ -816,6 +840,10 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     var id = "q-" + path.replace(/\./g, "-");
     return '<label class="fl" for="' + id + '">' + esc(label) + '<input type="text" id="' + id + '" data-bind="' + path + '" value="' + esc(getPath(state, path)) + '" placeholder="' + esc(ph || "") + '"></label>';
   }
+  function timeField(path, label, full, ph) {
+    var id = "q-" + path.replace(/\./g, "-");
+    return '<label class="fl tf" for="' + id + '">' + esc(label) + '<input type="text" id="' + id + '" data-bind="' + path + '" value="' + esc(getPath(state, path)) + '" placeholder="' + esc(ph || "") + '" aria-label="' + esc(full) + '"></label>';
+  }
   function notesField(path, label, extraClass) {
     var id = "q-" + path.replace(/\./g, "-");
     return '<label class="fl ' + (extraClass || "") + '" for="' + id + '">' + esc(label) + '<textarea class="ta" id="' + id + '" data-bind="' + path + '" rows="3">' + esc(getPath(state, path)) + '</textarea></label>';
@@ -832,16 +860,10 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     return '<div class="qg"><h3>Qualifying questions</h3>' +
       radioGroup("q.rowFormat", QPRE, QOPT.rowFormat) +
       radioGroup("q.rowPref", "Do you prefer to...", QOPT.rowPref) +
-      '<div class="times">' +
-      textField("q.t500", "What is your 500m row time?", "m:ss") +
-      textField("q.t1000", "What is your 1000m row time?", "m:ss") +
-      textField("q.row5k", "What is your 5km row time?", "mm:ss") +
-      textField("q.run400", "What is your 400m run time?", "m:ss") +
-      textField("q.run1k", "What is your 1km run time?", "m:ss") +
-      textField("q.run5k", "What is your 5km run time?", "mm:ss") +
-      textField("q.bike1k", "What is your 1000m Airbike time?", "m:ss") +
-      textField("q.bike3k", "What is your 3km Airbike time?", "m:ss") +
-      textField("q.bike10k", "What is your 10km Airbike time?", "mm:ss") + '</div>' +
+      '<div class="mtimes">' +
+      '<div class="mcol"><h4>Row</h4>' + timeField("q.t500", "500m", "What is your 500m row time?", "m:ss") + timeField("q.t1000", "1000m", "What is your 1000m row time?", "m:ss") + timeField("q.row5k", "5km", "What is your 5km row time?", "mm:ss") + '</div>' +
+      '<div class="mcol"><h4>Run</h4>' + timeField("q.run400", "400m", "What is your 400m run time?", "m:ss") + timeField("q.run1k", "1km", "What is your 1km run time?", "m:ss") + timeField("q.run5k", "5km", "What is your 5km run time?", "mm:ss") + '</div>' +
+      '<div class="mcol"><h4>Airbike</h4>' + timeField("q.bike1k", "1000m", "What is your 1000m Airbike time?", "m:ss") + timeField("q.bike3k", "3km", "What is your 3km Airbike time?", "m:ss") + timeField("q.bike10k", "10km", "What is your 10km Airbike time?", "mm:ss") + '</div></div>' +
       notesField("q.metNotes", "Any additional comments about your overall metabolic conditioning performance level?", "notes") + '</div>';
   }
   function liftQualCard() {
@@ -1003,8 +1025,16 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   function benchHtml() {
     var Q = state.q;
     var lv = function (id, v) { var l = metLevel(id, v); return l ? v + " · " + MET_LEVELS[l.i] : v; };
-    var bench = dlHtml([["500m row", lv("row500", Q.t500)], ["1000m row", lv("row1k", Q.t1000)], ["5km row", lv("row5k", Q.row5k)], ["400m run", Q.run400], ["1km run", lv("run1k", Q.run1k)], ["5km run", lv("run5k", Q.run5k)], ["1000m Airbike", Q.bike1k], ["3km Airbike", lv("bike3k", Q.bike3k)], ["10km Airbike", lv("bike10k", Q.bike10k)]]);
-    return bench ? '<div class="card ctx prof"><h3>Metcon benchmarks</h3>' + bench + '</div>' : "";
+    var groups = [
+      ["Row", [["500m", lv("row500", Q.t500)], ["1000m", lv("row1k", Q.t1000)], ["5km", lv("row5k", Q.row5k)]]],
+      ["Run", [["400m", Q.run400], ["1km", lv("run1k", Q.run1k)], ["5km", lv("run5k", Q.run5k)]]],
+      ["Airbike", [["1000m", Q.bike1k], ["3km", lv("bike3k", Q.bike3k)], ["10km", lv("bike10k", Q.bike10k)]]]
+    ];
+    var cols = groups.map(function (g) {
+      var d = dlHtml(g[1]);
+      return d ? '<div class="bcol"><h4>' + g[0] + '</h4>' + d + '</div>' : "";
+    }).join("");
+    return cols ? '<div class="card ctx"><h3>Metcon benchmarks</h3><div class="bgrid">' + cols + '</div></div>' : "";
   }
   function profileHtml() {
     var P = state.profile, Q = state.q, md = state.mode === "rx" ? "Rx" : "Scaled";
