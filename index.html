@@ -171,6 +171,9 @@ input.rp::-webkit-outer-spin-button, input.rp::-webkit-inner-spin-button { -webk
 input.kg { width: 4.6rem; text-align: center; font-weight: 600; border: 1px solid var(--line); border-radius: 6px; padding: 4px 2px; background: var(--surface-2); font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
 input.kg::-webkit-outer-spin-button, input.kg::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .unit { color: var(--muted); font-size: .82rem; width: 1.4rem; }
+.rate-guide { font-size: .84rem; color: var(--muted); margin: 10px 0 6px; }
+.rate-guide b { color: var(--ink); }
+.rate-guide ul { margin: 4px 0 0; padding-left: 18px; }
 .sec-note.load { color: var(--ink); background: var(--surface-2); border-radius: 7px; padding: 7px 10px; }
 .sec-submit { margin-top: 14px; display: flex; justify-content: flex-end; }
 .sec-submit[hidden] { display: none; }
@@ -515,9 +518,16 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     ctl += '<input class="sc num band-' + bandOf(v) + '" id="' + id + '" data-k="' + esc(k) + '" type="number" inputmode="numeric" min="0" max="10" step="1" value="' + (v === null ? "" : v) + '" aria-label="' + esc(name) + ' score">';
     return '<div class="row"><label class="nm" for="' + id + '">' + esc(name) + '</label><span class="ctl">' + ctl + '</span></div>';
   }
+  var GUIDE_MOV = ["Rate your level of effectiveness in a workout of each movement:", ["0 means you cannot do it at all", "1 to 5 means you would struggle in a WOD", "6 to 8 shows proficiency", "9 to 10 shows virtuosity"]];
+  var GUIDE_MOB = ["Rate each joint:", ["0 means you have pain when at rest", "1 to 5 means you have some level of discomfort when performing tasks", "6 to 8 shows proficient function with room for improvement", "9 to 10 shows full mobility and stability of the joint"]];
+  function guideHtml(g) {
+    return '<div class="rate-guide"><b>' + esc(g[0]) + '</b><ul>' + g[1].map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + '</ul></div>';
+  }
   function sectionHtml(sec, items, open, note, title, extra, loadKind) {
     var scored = items.filter(function (n) { return parseScore(state.scores[keyOf(sec, n)]) !== null; }).length;
     var notes = "";
+    if (sec === "mob") notes += guideHtml(GUIDE_MOB);
+    else if (sec !== "life" && WL.indexOf(sec) < 0) notes += guideHtml(GUIDE_MOV);
     if (note) notes += '<p class="sec-note">' + esc(note) + '</p>';
     if (loadKind) notes += '<p class="sec-note load" data-loadnote="' + loadKind + '">' + esc(loadNote(loadKind)) + '</p>';
     return '<details class="card"' + (open ? " open" : "") + ' data-sec="' + sec + '"><summary><h2>' + esc(title) + '</h2><span class="prog" data-prog="' + sec + '">' + scored + "/" + items.length + ' scored</span></summary>' +
@@ -940,10 +950,10 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       if (isWl) wl += html; else rest += html;
     });
     wl += liftsSection() + liftQualCard();
-    h += '<details class="card group" data-sec="wl"><summary><h2>Weightlifting</h2><span class="prog" data-prog="wl">' + wlCount() + '</span></summary><div class="sec-body"><p class="sec-note">Barbell cycling, dumbbell cycling, wall balls, 1RMs and qualifying questions.</p>' + wl + '</div></details>';
+    h += '<details class="card group" data-sec="wl"><summary><h2>Weightlifting</h2><span class="prog" data-prog="wl">' + wlCount() + '</span></summary><div class="sec-body">'+guideHtml(GUIDE_MOV)+'<p class="sec-note">Barbell cycling, dumbbell cycling, wall balls, 1RMs and qualifying questions.</p>' + wl + '</div></details>';
     h += rest;
     h += sectionHtml("life", LIFE, false, "Score so that 10 is best. Low stress is a 10, poor sleep is a 1.", "Lifestyle factors");
-    h += sectionHtml("mob", MOB, false, "10 is full, comfortable range for the joint. Any pain scores 0.", "Mobility",
+    h += sectionHtml("mob", MOB, false, "", "Mobility",
       '<div class="cmt">' + notesField("mobNotes", "Additional comments about mobility") + '</div>');
     $("panel-scores").innerHTML = h;
   }
