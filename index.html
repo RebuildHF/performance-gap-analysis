@@ -268,6 +268,17 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   .cat-row { grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 2.4rem; }
   .top h1 { font-size: 1.7rem; }
 }
+@media print {
+  body { background: #fff !important; }
+  .tabs, .banner, .panel-scores, .seg, .plan-actions, .t2-head button, .saved, #btn-signout, .auth-card { display: none !important; }
+  .top > div:first-child p { display: none; }
+  .app { display: block !important; }
+  .panel-plan { display: block !important; position: static !important; max-height: none !important; overflow: visible !important; }
+  .card { box-shadow: none !important; }
+  .card li, .card h3, .sub-h { break-inside: avoid; }
+  .card h3, .sub-h { break-after: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -1361,62 +1372,22 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 
     t2 += profileHtml();
     t2 += benchHtml();
-    t2 += '<div class="plan-actions"><button type="button" class="btn primary" id="btn-copy">Copy plan as text</button><span class="copied" id="copied" role="status"></span></div>';
+    t2 += '<div class="plan-actions"><button type="button" class="btn primary" id="btn-copy">Save Summary (PDF)</button><span class="copied" id="copied" role="status"></span></div>';
     h += tier1Html(r);
     if (auth.tier2) h += '<div class="card t2-head"><h2>Full plan</h2><span class="badge">Unlocked</span><button type="button" class="btn" id="btn-signout">Sign out</button></div>' + savedHtml() + t2;
     else h += lockHtml();
     $("panel-plan").innerHTML = h;
     bindAuth();
     var cb = $("btn-copy");
-    if (cb) cb.addEventListener("click", function () { copyPlan(r); });
+    if (cb) cb.addEventListener("click", function () { savePdf(); });
   }
 
-  function planText(r) {
-    function line(label, freq, list) {
-      return label + " (" + freq + "): " + (list.length ? list.map(function (m) { return m.name + " " + m.score; }).join(", ") : "none");
-    }
-    var t = (state.name || "Athlete") + " · " + (state.mode === "rx" ? "Rx" : "Scaled") + " weekly plan\n";
-    if (state.goals.m6) t += "6-month goal: " + state.goals.m6 + "\n";
-    if (state.goals.m12) t += "12-month goal: " + state.goals.m12 + "\n";
-    if (state.goals.y3) t += "3-year goal: " + state.goals.y3 + "\n";
-    t += "\n" + line("PRACTICE", "2-3x/week each", r.p) + "\n";
-    t += line("TRAIN", "2-3x/week each", r.s) + "\n";
-    t += line("CONDITION, rated 7", "1-2x/week each", r.c7) + "\n";
-    t += line("CONDITION, rated 6", "1-2x/week each", r.c6) + "\n";
-    if (r.k.length) t += "RATED 8 OR HIGHER: no additional work needed, maintain through the usual variety of training.\n";
-    var pn = MOB.filter(function (n) { return parseScore(state.scores[keyOf("mob", n)]) === 0; });
-    if (pn.length) t += "\nPAIN (mobility scored 0): " + pn.join(", ") + ". Seek the opinion of a qualified professional, such as a physiotherapist or doctor, before training these joints.\n";
-    var P = state.profile, Q = state.q;
-    var bits = [P.gender, P.height ? P.height + " cm" : "", P.weight ? P.weight + " kg" : ""].filter(Boolean);
-    if (bits.length) t += "\nProfile: " + bits.join(", ") + "\n";
-    t += "Version: " + md + "\n";
-    var lf = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; }).map(function (l) { return l + " " + state.lifts[l]; });
-    if (lf.length) t += "1RMs (kg): " + lf.join(", ") + "\n";
-    var bl = ["Deadlift", "Snatch", "Clean"].map(function (l) { var b = baseInfo(l); return b ? l + " " + b.kg + " kg" + (b.mult !== null ? " (" + b.mult.toFixed(2) + "x bodyweight" + (LEVEL_SCALE[l] ? ", " + b.chip : "") + ")" : "") : ""; }).filter(Boolean);
-    if (bl.length) t += "Baseline lifts: " + bl.join("; ") + "\n";
-    var rr = ratioRows();
-    if (rr.length) {
-      t += "Strength ratios:\n" + rr.map(function (x) {
-        return "- " + x.R.lift + " (against " + x.R.of + "): " + (x.st === "in" ? "in range" : x.st === "below" ? "below range, goal: add " + x.need + " kg" : "above range by about " + x.over + " kg");
-      }).join("\n") + "\n";
-    }
-    [["WEIGHTLIFTING SUMMARY", wlThemes(r)], ["GYMNASTICS SUMMARY", gymThemes(r)], ["METABOLIC CONDITIONING SUMMARY", metThemes(r)]].forEach(function (g) {
-      if (g[1].length) t += "\n" + g[0] + ":\n" + g[1].map(function (x) { return "- " + x.head + ": " + x.text; }).join("\n") + "\n";
-    });
-    var lvT = function (id, v) { var l = metLevel(id, v); return l ? v + " (" + MET_LEVELS[l.i] + ")" : v; };
-    var bm = [["500m row", lvT("row500", Q.t500)], ["1000m row", lvT("row1k", Q.t1000)], ["5km row", lvT("row5k", Q.row5k)], ["400m run", Q.run400], ["1km run", lvT("run1k", Q.run1k)], ["5km run", lvT("run5k", Q.run5k)], ["1000m Airbike", Q.bike1k], ["3km Airbike", lvT("bike3k", Q.bike3k)], ["10km Airbike", lvT("bike10k", Q.bike10k)]].filter(function (p) { return p[1]; });
-    if (bm.length) t += "\nMETCON BENCHMARKS:\n" + bm.map(function (p) { return "- " + p[0] + ": " + p[1]; }).join("\n") + "\n\n";
-    [["Gymnastics volume", Q.gymReps], ["Gymnastics style", Q.gymStyle], ["Row format", Q.rowFormat], ["Row preference", Q.rowPref], ["Weightlifting preference", Q.liftPref],
-     ["Gymnastics comments", Q.gymNotes], ["Conditioning comments", Q.metNotes], ["Weightlifting comments", Q.liftNotes], ["Mobility comments", state.mobNotes]
-    ].forEach(function (p) { if (p[1]) t += p[0] + ": " + p[1] + "\n"; });
-    return t;
-  }
-  function copyPlan(r) {
-    var text = planText(r), msg = $("copied");
-    function done(ok) { msg.textContent = ok ? "Copied" : "Copy blocked here. Select the plan and copy it manually."; setTimeout(function () { msg.textContent = ""; }, 2500); }
-    try {
-      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
-    } catch (e) { done(false); }
+  function savePdf() {
+    var old = document.title, nm = (state.name || "Athlete").trim();
+    document.title = "Performance Gap Analysis - " + nm;
+    var restore = function () { document.title = old; window.removeEventListener("afterprint", restore); };
+    window.addEventListener("afterprint", restore);
+    window.print();
   }
 
   /* ---------- wiring ---------- */
