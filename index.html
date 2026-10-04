@@ -273,18 +273,43 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   .cat-row { grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 2.4rem; }
   .top h1 { font-size: 1.7rem; }
 }
+#print-doc { display: none; }
 @media print {
   body { background: #fff !important; }
-  .t2-head, .tabs, .banner, .legend, .key-note, .panel-scores, .seg, .plan-actions, .t2-head button, .saved, #btn-signout, .auth-card { display: none !important; }
-  .top > div:first-child p { display: none; }
-  .app { display: block !important; }
-  .panel-plan { display: block !important; position: static !important; max-height: none !important; overflow: visible !important; }
-  .card { box-shadow: none !important; break-inside: avoid; }
+  body > .wrap { display: none !important; }
+  #print-doc { display: block; zoom: .8; }
   @page { size: A4; margin: 10mm; }
-  .wrap { zoom: .86; }
-  .stack > .card, .stack > section { margin-bottom: 8px !important; }
-  .lane-top, .lane .how, .lane .sub-h, .card h3, .sub-h { break-after: avoid; }
-  .card li, .card dl > div, .lifts > div, .bcol, .cat-row, .rt, .split-legend, .tiles, .goals, .alert, .ts, .t1 .bar, .seg-bar { break-inside: avoid; }
+  #print-doc .pp { display: flex; flex-direction: column; gap: 8px; }
+  #print-doc .pbreak { break-before: page; }
+  #print-doc h1 { font-size: 1.7rem; text-transform: uppercase; margin: 0 0 2px; line-height: 1; }
+  #print-doc .card { box-shadow: none !important; break-inside: avoid; }
+  #print-doc .card h3, #print-doc .sub-h { break-after: avoid; }
+  #print-doc li, #print-doc .rtile, #print-doc .bcol, #print-doc .cat-row, #print-doc .split-legend, #print-doc .tiles, #print-doc .alert, #print-doc .ts { break-inside: avoid; }
+  #print-doc .t1 .grp-h { margin-top: 8px; }
+  #print-doc .cat-row { padding: 1px 0; font-size: .8rem; gap: 8px; }
+  #print-doc .track { height: 6px; }
+  #print-doc ul.mv li { padding: 2px 0; }
+  #print-doc .lane-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: start; }
+  #print-doc .lane { padding: 10px 10px 8px; border-left-width: 4px; }
+  #print-doc .lane-top .freq { font-size: .85rem; }
+  #print-doc .lane-top .cnt { margin-left: 0; }
+  #print-doc .lane .how { display: none; }
+  #print-doc .lane .sub-h { margin: 6px 0 2px; }
+  #print-doc ul.mv li { gap: 6px; font-size: .8rem; }
+  #print-doc ul.mv .cat { display: none; }
+  #print-doc .rgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+  #print-doc .rtile { background: var(--surface-2); border-radius: 7px; padding: 4px 7px; font-size: .78rem; min-width: 0; display: flex; flex-direction: column; gap: 1px; align-items: flex-start; }
+  #print-doc .pr-ratios .sub-h { margin: 6px 0 1px; }
+  #print-doc .pr-ratios .fine { margin-top: 4px; }
+  #print-doc .rtile b { font-size: 1rem; font-variant-numeric: tabular-nums; }
+  #print-doc .rtile .rn { font-weight: 600; }
+  #print-doc .rtile .rx { color: var(--muted); font-size: .7rem; line-height: 1.2; }
+  #print-doc .pcols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; align-items: start; }
+  #print-doc .pcols .bcol { border-top: 3px solid var(--accent); padding-top: 4px; }
+  #print-doc .pcols h4 { margin: 0 0 4px; font-family: var(--font-display); font-size: 1.05rem; letter-spacing: .06em; text-transform: uppercase; }
+  #print-doc .pcols dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 3px 10px; margin: 0 0 6px; font-size: .82rem; }
+  #print-doc .pcols dt { color: var(--muted); } #print-doc .pcols dd { margin: 0; }
+  #print-doc .bt { font-size: .8rem !important; margin: 6px 0 0 !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -1095,7 +1120,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     }).join("");
     return cols ? '<div class="card ctx"><h3>Metcon benchmarks</h3><div class="bgrid">' + cols + '</div></div>' : "";
   }
-  function profileHtml() {
+  function profileHtml(noLifts) {
     var P = state.profile, Q = state.q, md = state.mode === "rx" ? "Rx" : "Scaled";
     var h = '<div class="card ctx prof"><h3>Athlete profile</h3>';
     h += dlHtml([["Name", state.name], ["Gender", P.gender], ["Height", P.height ? P.height + " cm" : ""], ["Weight", P.weight ? P.weight + " kg" : ""],
@@ -1110,7 +1135,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     if (pref) h += '<div class="sub-h">Would rather face</div>' + pref;
     var bw = parseFloat(P.weight);
     var lifts = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; });
-    if (lifts.length) {
+    if (lifts.length && !noLifts) {
       h += '<div class="sub-h">1RMs</div><div class="lifts">' + lifts.map(function (l) {
         var kg = Number(state.lifts[l]);
         return '<div><span>' + esc(l) + '</span><b>' + kg + ' kg</b>' + (bw > 0 ? '<span>' + (kg / bw).toFixed(2) + '× bodyweight</span>' : "") + '</div>';
@@ -1226,7 +1251,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       if (f[second] > 0 && (f[top] - f[second]) / f.tot <= 0.08) h += '<p class="fine">' + FOCUS[second].name + ' is close behind.</p>';
       h += '<p class="fine">A low score can come from skill, strength or mobility. Bigger gaps count for more. Treat this as a starting point and confirm with a coach.</p>';
     }
-    h += '</div>';
+    h += '</div><!--SPLIT-->';
 
     /* ratings */
     h += '<div class="card t1"><h3>Your ratings</h3><p class="fine" style="margin-top:4px">Number of movements in each band, and how often each one needs attention.</p>';
@@ -1379,6 +1404,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       if (r.n.p + r.n.s > 6) t2 += '<p class="warn">' + (r.n.p + r.n.s) + ' movements need practice or training 2 to 3× a week. Start with the lowest scores, or the ones that share a limiter (see below), and bring the rest in as those lift.</p>';
     }
     t2 += '</div>';
+    var weekHtml = t2, lanesStart = t2.length;
 
     /* lanes */
     t2 += '<section class="card lane lane-p"><div class="lane-top"><h3>Practice</h3><span class="freq">2 to 3× per week each</span><span class="cnt">Rated 0 to 3 · ' + r.n.p + '</span></div><p class="how">' + HOW.p + '</p>' + listHtml(r.p, "Nothing rated 3 or below.") + '</section>';
@@ -1386,6 +1412,8 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     t2 += '<section class="card lane lane-c"><div class="lane-top"><h3>Condition</h3><span class="freq">1 to 2× per week each</span><span class="cnt">Rated 6 to 7 · ' + r.n.c + '</span></div><p class="how">' + HOW.c + '</p>' +
       '<div class="sub-h">Rated 7</div>' + listHtml(r.c7, "Nothing rated 7.") +
       '<div class="sub-h">Rated 6 · may need one extra conditioning day on top of classes</div><p class="how">Pair a cardio element with a gymnastics or weightlifting element so breathing gets hard without pushing to muscular failure.</p>' + listHtml(r.c6, "Nothing rated 6.") + '</section>';
+
+    var lanesHtml = t2.slice(lanesStart);
 
     /* patterns */
     t2 += ratiosHtml(r);
@@ -1410,9 +1438,82 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     if (auth.tier2) h += '<div class="card t2-head"><h2>In Depth Breakdown</h2><span class="badge">Free during trial</span><button type="button" class="btn" id="btn-signout">Sign out</button></div>' + savedHtml() + t2;
     else h += lockHtml();
     $("panel-plan").innerHTML = h;
+    renderPrintDoc(r, auth.tier2 ? { week: weekHtml, lanes: lanesHtml, flags: flags } : null);
     bindAuth();
     var cb = $("btn-copy");
     if (cb) cb.addEventListener("click", function () { savePdf(); });
+  }
+
+
+  /* ---------- print document (PDF) ---------- */
+  function ratiosPrintHtml() {
+    var rows = ratioRows(), done = {};
+    var chains = [["pull", "Deadlift", "Deadlift"], ["snatch", "Snatch variations", "Snatch"], ["clean", "Clean variations", "Clean"], ["jerk", "Jerk and press chain", ""]];
+    var h = '<div class="card ctx ratios pr-ratios"><h3>Strength ratios and 1RMs</h3>';
+    var any = rows.length || chains.some(function (ch) { return Number(state.lifts[ch[2]]) > 0; });
+    if (!any) return h + '<p class="empty">No 1RMs entered.</p></div>';
+    var bw = parseFloat(state.profile.weight);
+    function tile(lift, kg, chip, cls, note) {
+      done[lift] = true;
+      return '<div class="rtile"><span class="rn">' + esc(lift) + '</span><b>' + kg + ' kg</b><span class="chip ' + cls + '">' + chip + '</span><span class="rx">' + note + '</span></div>';
+    }
+    chains.forEach(function (ch) {
+      var list = rows.filter(function (x) { return x.R.chain === ch[0]; });
+      var b = ch[2] ? baseInfo(ch[2]) : null, t = "";
+      if (b && !done[ch[2]]) t += tile(ch[2], b.kg, b.chip, "band-k", esc(b.note));
+      list.forEach(function (x) {
+        var cls = x.st === "in" ? "band-c" : x.st === "below" ? "band-s" : "band-k";
+        var lbl = x.st === "in" ? "In range" : x.st === "below" ? "Below range" : "Above range";
+        var note = x.st === "in" ? "Compared with " + esc(x.R.of) + ". Aim to increase as your strength numbers improve." : x.st === "below" ? "Compared with " + esc(x.R.of) + ". Goal: add " + x.need + " kg." : "Compared with " + esc(x.R.of) + ". About " + x.over + " kg above range.";
+        t += tile(x.R.lift, x.c, lbl, cls, note);
+      });
+      if (t) h += '<div class="sub-h">' + ch[1] + '</div><div class="rgrid">' + t + '</div>';
+    });
+    var other = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0 && !done[l]; });
+    if (other.length) h += '<div class="sub-h">Other 1RMs</div><div class="rgrid">' + other.map(function (l) { return '<div class="rtile"><span class="rn">' + esc(l) + '</span><b>' + Number(state.lifts[l]) + ' kg</b>' + (bw > 0 ? '<span class="rx">' + (Number(state.lifts[l]) / bw).toFixed(2) + '× bodyweight</span>' : "") + '</div>'; }).join("") + '</div>';
+    h += '<p class="fine">Where a target is a single figure, 3 percentage points either side count as in range. Suggested numbers are guides for a coach to confirm.</p></div>';
+    return h;
+  }
+  function metPrintHtml(r) {
+    var Q = state.q;
+    var lv = function (id, v) { var l = metLevel(id, v); return l ? v + " · " + MET_LEVELS[l.i] : v; };
+    var cols = [
+      ["Row", [["500m", lv("row500", Q.t500)], ["1000m", lv("row1k", Q.t1000)], ["5km", lv("row5k", Q.row5k)]]],
+      ["Run", [["400m", Q.run400], ["1km", lv("run1k", Q.run1k)], ["5km", lv("run5k", Q.run5k)]]],
+      ["Airbike", [["1000m", Q.bike1k], ["3km", lv("bike3k", Q.bike3k)], ["10km", lv("bike10k", Q.bike10k)]]]
+    ];
+    var themes = metThemes(r), base = themes.filter(function (t) { return t.head === "Aerobic base"; });
+    var body = cols.map(function (c) {
+      var d = dlHtml(c[1]);
+      var th = themes.filter(function (t) { return t.head.indexOf(c[0] + " ") === 0; });
+      if (!d && !th.length) return "";
+      return '<div class="bcol"><h4>' + c[0] + '</h4>' + d + th.map(function (t) { return '<p class="bt"><b>' + esc(t.head.slice(c[0].length + 1)) + '.</b> ' + esc(t.text) + '</p>'; }).join("") + '</div>';
+    }).join("");
+    if (!body && !base.length) return "";
+    return '<div class="card ctx pr-met"><h3>Metcon benchmarks and metabolic conditioning summary</h3><div class="pcols">' + body + '</div>' +
+      base.map(function (t) { return '<p class="bt"><b>' + esc(t.head) + '.</b> ' + esc(t.text) + '</p>'; }).join("") + '</div>';
+  }
+  function themeCard(title, list) {
+    if (!list.length) return "";
+    return '<div class="card ctx"><h3>' + title + '</h3><ul>' + list.map(function (t) { return '<li><b>' + esc(t.head) + '.</b> ' + esc(t.text) + '</li>'; }).join("") + '</ul></div>';
+  }
+  function renderPrintDoc(r, d) {
+    var el = $("print-doc");
+    if (!el) { el = document.createElement("div"); el.id = "print-doc"; document.body.appendChild(el); }
+    if (!d) { el.innerHTML = ""; return; }
+    var parts = tier1Html(r).split("<!--SPLIT-->");
+    var title = state.name ? esc(state.name) : "Athlete";
+    var h = '<div class="pp"><h1>Performance Gap Analysis</h1>' +
+      '<div class="card plan-head"><h2>' + title + ' · ' + (state.mode === "rx" ? "Rx" : "Scaled") + ' results</h2><div class="sub">' + r.scored.length + " of " + r.all.length + " movements scored</div></div>" +
+      profileHtml(true) + parts[0] + '</div>';
+    h += '<div class="pp pbreak">' + parts[1] + '</div>';
+    h += '<div class="pp pbreak">' + d.week + '<div class="lane-cols">' + d.lanes + '</div></div>';
+    h += '<div class="pp pbreak">' + ratiosPrintHtml() + themeCard("Weightlifting summary", wlThemes(r)) + '</div>';
+    h += '<div class="pp pbreak">' + themeCard("Gymnastics summary", gymThemes(r)) + metPrintHtml(r) + '<div class="card ctx diag"><h3>Before programming a low score</h3><ul>' +
+      '<li>Has the strength and mobility: it is a <b>skill</b> issue.</li><li>Has the skill and mobility: it is a <b>strength</b> issue.</li>' +
+      '<li>Has the strength, but good skill takes great effort: look at <b>mobility</b>.</li>' + d.flags + '</ul></div>' +
+      (r.k.length ? '<div class="card ctx covered"><b>Rated 8 or higher.</b> These movements don\'t need additional work and can be maintained through the usual variety of training.</div>' : "") + '</div>';
+    el.innerHTML = h;
   }
 
   function savePdf() {
