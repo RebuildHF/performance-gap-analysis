@@ -793,7 +793,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   var LEVEL_SCALE = { "Deadlift": 1, "Clean": 0.55, "Snatch": 0.45 };
   function level(x, lift) {
     x = x / (LEVEL_SCALE[lift] || 1);
-    if (x < 1.5) return "Beginner";
+    if (x < 1.5) return "Novice";
     if (x < 1.75) return "Intermediate";
     if (x < 2.25) return "Advanced";
     if (x <= 2.5) return "Sub-elite";
@@ -1063,7 +1063,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     var P = state.profile, Q = state.q, md = state.mode === "rx" ? "Rx" : "Scaled";
     var h = '<div class="card ctx prof"><h3>Athlete profile</h3>';
     h += dlHtml([["Gender", P.gender], ["Height", P.height ? P.height + " cm" : ""], ["Weight", P.weight ? P.weight + " kg" : ""],
-      [md + " light barbell", loadText("light")], [md + " heavy barbell", loadText("heavy")], [md + " dumbbell", loadText("db")]]);
+      ["Version", md]]);
     var pref = dlHtml([["Gymnastics volume", Q.gymReps], ["Gymnastics style", Q.gymStyle], ["Row format", Q.rowFormat], ["Row preference", Q.rowPref], ["Weightlifting", Q.liftPref]]);
     if (pref) h += '<div class="sub-h">Would rather face</div>' + pref;
     var bw = parseFloat(P.weight);
@@ -1389,7 +1389,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     var P = state.profile, Q = state.q;
     var bits = [P.gender, P.height ? P.height + " cm" : "", P.weight ? P.weight + " kg" : ""].filter(Boolean);
     if (bits.length) t += "\nProfile: " + bits.join(", ") + "\n";
-    t += "Reference loads: light " + loadText("light") + "; heavy " + loadText("heavy") + "; dumbbell " + loadText("db") + "\n";
+    t += "Version: " + md + "\n";
     var lf = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; }).map(function (l) { return l + " " + state.lifts[l]; });
     if (lf.length) t += "1RMs (kg): " + lf.join(", ") + "\n";
     var bl = ["Deadlift", "Snatch", "Clean"].map(function (l) { var b = baseInfo(l); return b ? l + " " + b.kg + " kg" + (b.mult !== null ? " (" + b.mult.toFixed(2) + "x bodyweight" + (LEVEL_SCALE[l] ? ", " + b.chip : "") + ")" : "") : ""; }).filter(Boolean);
