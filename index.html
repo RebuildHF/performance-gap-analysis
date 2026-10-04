@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>Performance Gap Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: scores on the left, live weekly plan on the right (tabs on phones). Plan reads like a programming whiteboard: three lanes, each with a frequency. */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #f5f7f9;
+  --ink: #16222c;
+  --muted: #5b6a77;
+  --line: #d5dbe1;
+  --accent: #135d73;
+  --accent-ink: #ffffff;
+  --p-bg: #fbe3e1; --p-fg: #8f2a22; --p-solid: #c8453b;
+  --s-bg: #fbefcb; --s-fg: #7a5700; --s-solid: #d69a12;
+  --c-bg: #ddf0e0; --c-fg: #1f6b35; --c-solid: #3e9a5b;
+  --k-bg: #e3e8ed; --k-fg: #566674; --k-solid: #8a99a6;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f161c; --surface: #17212a; --surface-2: #1c2833; --ink: #e6ecf1; --muted: #93a2af; --line: #2c3a46;
+    --accent: #5fb4cc; --accent-ink: #0b1a21;
+    --p-bg: #3a1d1b; --p-fg: #f2a8a1; --p-solid: #e0594e;
+    --s-bg: #3a2e0e; --s-fg: #edc76a; --s-solid: #e0a62a;
+    --c-bg: #17321f; --c-fg: #8fd6a4; --c-solid: #4daf6c;
+    --k-bg: #222e38; --k-fg: #9fb0bd; --k-solid: #6f8191;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f161c; --surface: #17212a; --surface-2: #1c2833; --ink: #e6ecf1; --muted: #93a2af; --line: #2c3a46;
+  --accent: #5fb4cc; --accent-ink: #0b1a21;
+  --p-bg: #3a1d1b; --p-fg: #f2a8a1; --p-solid: #e0594e;
+  --s-bg: #3a2e0e; --s-fg: #edc76a; --s-solid: #e0a62a;
+  --c-bg: #17321f; --c-fg: #8fd6a4; --c-solid: #4daf6c;
+  --k-bg: #222e38; --k-fg: #9fb0bd; --k-solid: #6f8191;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; padding-inline: 16px; padding-block: 20px 40px; }
+.wrap { max-width: 1280px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: .02em; margin: 0; text-wrap: balance; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* top */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 14px; }
+.top h1 { font-size: 2.1rem; line-height: 1; text-transform: uppercase; }
+.top p { margin: 6px 0 0; color: var(--muted); max-width: 68ch; }
+.top p.hint { margin-top: 4px; font-weight: 600; color: var(--ink); }
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; }
+.seg button { border: 0; background: transparent; padding: 7px 18px; border-radius: 6px; cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.tabs { display: none; margin-bottom: 12px; }
+.tabs .seg { display: flex; }
+.tabs .seg button { flex: 1; }
+
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: var(--s-bg); color: var(--s-fg); border-radius: 8px; padding: 9px 14px; margin-bottom: 14px; font-size: .92rem; }
+.banner[hidden] { display: none; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 12px; cursor: pointer; font-weight: 600; font-size: .88rem; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 20px; align-items: start; }
+.panel-plan { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px); overflow: auto; padding-right: 2px; }
+.stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* score entry */
+.legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.legend div { border-radius: 7px; padding: 7px 9px; font-size: .8rem; line-height: 1.25; }
+.legend b { display: block; font-family: var(--font-display); font-size: 1rem; letter-spacing: .04em; text-transform: uppercase; }
+.legend .p, .band-p { background: var(--p-bg); color: var(--p-fg); }
+.legend .s, .band-s { background: var(--s-bg); color: var(--s-fg); }
+.legend .c, .band-c { background: var(--c-bg); color: var(--c-fg); }
+.legend .k, .band-k { background: var(--k-bg); color: var(--k-fg); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+details.card > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .12s; flex: none; }
+details.card[open] > summary::before { transform: rotate(45deg); }
+summary h2 { font-size: 1.25rem; text-transform: uppercase; flex: 1; }
+.prog { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sec-body { padding: 2px 14px 14px; border-top: 1px solid var(--line); }
+.sec-note { color: var(--muted); font-size: .84rem; margin: 10px 0 6px; }
+.rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 18px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.row .nm { min-width: 0; overflow-wrap: anywhere; }
+input.sc { width: 3.1rem; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; border: 1px solid var(--line); border-radius: 6px; padding: 4px 2px; background: var(--surface-2); flex: none; -moz-appearance: textfield; }
+input.sc::-webkit-outer-spin-button, input.sc::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input.sc.band-p, input.sc.band-s, input.sc.band-c, input.sc.band-k { border-color: transparent; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; padding: 12px 14px 14px; }
+.fields label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); min-width: 0; }
+.fields .wide { grid-column: 1 / -1; }
+.fields input[type="text"] { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; background: var(--surface-2); color: var(--ink); font-size: .95rem; width: 100%; }
+
+/* plan */
+.plan-head { padding: 14px 16px; }
+.plan-head h2 { font-size: 1.6rem; text-transform: uppercase; line-height: 1.05; }
+.plan-head .sub { color: var(--muted); font-size: .9rem; margin-top: 3px; }
+.goals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.goals div { font-size: .82rem; background: var(--surface-2); border-radius: 7px; padding: 6px 9px; overflow-wrap: anywhere; }
+.goals span { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.split { padding: 14px 16px; }
+.split h3, .lane h3, .ctx h3 { font-size: 1.15rem; text-transform: uppercase; }
+.bar { display: flex; height: 34px; border-radius: 7px; overflow: hidden; margin: 10px 0 8px; background: var(--k-bg); gap: 2px; }
+.bar span { display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 1rem; letter-spacing: .03em; min-width: 0; overflow: hidden; }
+.bar .p { background: var(--p-solid); color: #fff; }
+.bar .s { background: var(--s-solid); color: #1c1400; }
+.bar .c { background: var(--c-solid); color: #fff; }
+.split-legend { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: .84rem; }
+.split-legend b { display: block; font-family: var(--font-display); font-size: 1.05rem; text-transform: uppercase; letter-spacing: .03em; }
+.split-legend em { font-style: normal; color: var(--muted); }
+.fine { color: var(--muted); font-size: .82rem; margin: 8px 0 0; }
+.warn { margin: 10px 0 0; padding: 8px 11px; border-radius: 7px; background: var(--s-bg); color: var(--s-fg); font-size: .86rem; }
+
+.lane { padding: 14px 16px 12px; border-left: 6px solid var(--k-solid); }
+.lane-p { border-left-color: var(--p-solid); }
+.lane-s { border-left-color: var(--s-solid); }
+.lane-c { border-left-color: var(--c-solid); }
+.lane-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.lane-top .freq { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; letter-spacing: .03em; padding: 1px 9px; border-radius: 5px; }
+.lane-p .freq { background: var(--p-bg); color: var(--p-fg); }
+.lane-s .freq { background: var(--s-bg); color: var(--s-fg); }
+.lane-c .freq { background: var(--c-bg); color: var(--c-fg); }
+.lane-top .cnt { margin-left: auto; color: var(--muted); font-size: .84rem; }
+.how { margin: 6px 0 8px; color: var(--muted); font-size: .86rem; max-width: 70ch; }
+.sub-h { font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 10px 0 2px; font-weight: 600; }
+ul.mv { list-style: none; padding: 0; margin: 0; }
+ul.mv li { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid var(--line); min-width: 0; }
+ul.mv .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+ul.mv .cat { font-size: .74rem; color: var(--muted); white-space: nowrap; }
+ul.mv .n { width: 1.9rem; text-align: center; border-radius: 5px; font-weight: 600; font-size: .86rem; padding: 1px 0; font-variant-numeric: tabular-nums; flex: none; }
+.empty { color: var(--muted); font-size: .86rem; padding: 5px 0; }
+.ctx { padding: 14px 16px; }
+.ctx ul { margin: 8px 0 0; padding-left: 18px; }
+.ctx li { margin: 4px 0; font-size: .9rem; }
+.ctx p { margin: 8px 0 0; font-size: .88rem; }
+.covered { font-size: .88rem; color: var(--muted); }
+.covered b { color: var(--ink); font-weight: 600; }
+.plan-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.copied { font-size: .84rem; color: var(--muted); }
+.diag li { color: var(--ink); }
+
+
+.fields input[type="number"], .fields select { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; background: var(--surface-2); color: var(--ink); font-size: .95rem; width: 100%; }
+.trio { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; }
+.trio label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); min-width: 0; }
+.fl { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); min-width: 0; }
+.fl input, .fl select, textarea.ta { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; background: var(--surface-2); color: var(--ink); font-size: .95rem; width: 100%; }
+textarea.ta { min-height: 72px; resize: vertical; font-family: var(--font-body); }
+.cmt { margin-top: 12px; }
+.ctl { display: flex; align-items: center; gap: 6px; flex: none; }
+input.rp { width: 3.7rem; text-align: center; border: 1px dashed var(--muted); border-radius: 6px; padding: 4px 2px; background: transparent; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+input.rp::-webkit-outer-spin-button, input.rp::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input.kg { width: 4.6rem; text-align: center; font-weight: 600; border: 1px solid var(--line); border-radius: 6px; padding: 4px 2px; background: var(--surface-2); font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+input.kg::-webkit-outer-spin-button, input.kg::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.unit { color: var(--muted); font-size: .82rem; width: 1.4rem; }
+.sec-note.load { color: var(--ink); background: var(--surface-2); border-radius: 7px; padding: 7px 10px; }
+.rows + .qg { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.qg + .qg { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.qg h3 { font-size: 1.15rem; text-transform: uppercase; }
+fieldset.qq { border: 0; padding: 0; margin: 10px 0 0; min-width: 0; }
+fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weight: 600; }
+.opt { display: flex; gap: 9px; align-items: flex-start; padding: 4px 0; cursor: pointer; }
+.opt input { margin-top: 4px; accent-color: var(--accent); flex: none; }
+.times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin-top: 12px; }
+.qg .fl.notes { margin-top: 12px; }
+.nm small { color: var(--muted); font-weight: 400; font-size: .8rem; margin-left: 4px; }
+.prof dl { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 4px 16px; margin: 6px 0 0; font-size: .88rem; }
+.prof dt { color: var(--muted); }
+.prof dd { margin: 0; overflow-wrap: anywhere; }
+.lifts { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin-top: 6px; }
+.lifts div { background: var(--surface-2); border-radius: 7px; padding: 5px 9px; font-size: .84rem; min-width: 0; }
+.lifts b { display: block; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.lifts span { color: var(--muted); font-size: .72rem; }
+
+.group > .sec-body > details.card { margin-top: 10px; background: var(--surface-2); }
+.group > .sec-body > details.card input.sc:not([class*="band-"]) { background: var(--surface); }
+
+.alert { background: var(--p-bg); color: var(--p-fg); border-radius: 10px; padding: 11px 14px; font-size: .92rem; }
+.t1 { padding: 14px 16px; }
+.t1 h3, .lock h3, .t2-head h2 { font-size: 1.15rem; text-transform: uppercase; }
+.focus-title { font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1; text-transform: uppercase; margin-top: 4px; }
+.eyebrow { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; }
+.focus-txt { margin: 8px 0 0; max-width: 62ch; }
+.t1 .split-legend { margin-top: 2px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.tile { border-radius: 8px; padding: 8px 10px; }
+.tile b { display: block; font-family: var(--font-display); font-size: 1.7rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.tile span { display: block; margin-top: 4px; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+.tile small { display: block; font-size: .78rem; line-height: 1.25; margin-top: 2px; }
+.cat-row { display: grid; grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr) 2.4rem; gap: 10px; align-items: center; padding: 4px 0; font-size: .88rem; }
+.track { height: 10px; background: var(--k-bg); border-radius: 5px; overflow: hidden; }
+.fill { height: 100%; border-radius: 5px; }
+.fill.p { background: var(--p-solid); } .fill.s { background: var(--s-solid); } .fill.c { background: var(--c-solid); } .fill.k { background: var(--k-solid); }
+.cat-row .v { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cat-row .nm { overflow-wrap: anywhere; }
+.lock { padding: 16px; border-style: dashed; }
+.lock-head, .t2-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.t2-head { padding: 12px 16px; }
+.t2-head .btn { margin-left: auto; }
+.lock svg { flex: none; color: var(--accent); }
+.badge { font-family: var(--font-display); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; background: var(--accent); color: var(--accent-ink); border-radius: 5px; padding: 2px 8px; font-weight: 700; }
+.lock ul { margin: 10px 0 12px; padding-left: 18px; }
+.lock li { margin: 3px 0; font-size: .92rem; }
+
+.grp-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 16px 0 2px; padding-bottom: 3px; border-bottom: 1px solid var(--line); font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: .03em; text-transform: uppercase; }
+.cat-row.all .nm { font-weight: 600; }
+.cat-row.sub .nm { padding-left: 12px; color: var(--muted); }
+.grp-low { margin: 2px 0 0 12px; }
+.refl { list-style: none; margin: 6px 0 0; padding: 0; font-size: .84rem; color: var(--muted); columns: 2; column-gap: 18px; }
+.refl li { break-inside: avoid; margin: 2px 0; }
+.refl b { color: var(--ink); font-weight: 600; }
+.ratios ul.rl { list-style: none; padding: 0; margin: 4px 0 0; }
+.rt { display: grid; grid-template-columns: minmax(0, 1.3fr) 5.5rem 7rem minmax(0, 1.5fr); gap: 4px 12px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: .88rem; margin: 0; }
+.rt .sub { color: var(--muted); font-size: .78rem; }
+.chip { border-radius: 5px; padding: 2px 8px; font-weight: 600; font-size: .78rem; text-align: center; white-space: nowrap; }
+@media (max-width: 560px) { .refl { columns: 1; } .rt { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "l c" "n n" "t t"; } .rt-l { grid-area: l; } .rt-n { grid-area: n; } .rt-c { grid-area: c; } .rt-t { grid-area: t; } }
+@media (max-width: 1040px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .panel-plan { position: static; max-height: none; overflow: visible; }
+  .tabs { display: block; }
+  body[data-view="scores"] .panel-plan { display: none; }
+  body[data-view="plan"] .panel-scores { display: none; }
+}
+@media (max-width: 560px) {
+  .rows { grid-template-columns: minmax(0, 1fr); }
+  .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .split-legend { grid-template-columns: minmax(0, 1fr); }
+  .goals { grid-template-columns: minmax(0, 1fr); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cat-row { grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 2.4rem; }
+  .top h1 { font-size: 1.7rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Performance Gap Analysis</h1>
+      <p>This survey is of your subjective reflection how you feel about your performance of general hybrid and functional training movements, to get a snap shot of where your personal gaps may lay to improve your overall performance.</p>
+      <p class="hint">Score each movement from 0 to 10.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Version">
+      <button type="button" id="mode-rx" aria-pressed="true">Rx</button>
+      <button type="button" id="mode-scaled" aria-pressed="false">Scaled</button>
+    </div>
+  </header>
+
+  <div class="tabs"><div class="seg" role="group" aria-label="View">
+    <button type="button" id="tab-scores" aria-pressed="true">Scores</button>
+    <button type="button" id="tab-plan" aria-pressed="false">Results</button>
+  </div></div>
+
+  <div class="banner" id="banner">
+    <span>Example scores are loaded so you can see how this works.</span>
+    <button type="button" class="btn" id="btn-clear">Clear and start fresh</button>
+  </div>
+
+  <div class="app">
+    <div class="panel-scores stack" id="panel-scores"></div>
+    <div class="panel-plan stack" id="panel-plan" aria-label="Results"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- data ---------- */
+  var LIGHT_HEAVY = ["Front Squat","Thruster","Squat Clean","Power Clean","Overhead Squat","Squat Snatch","Power Snatch","Push Press","Push Jerk","Deadlift","Front Rack Walking Lunge","Overhead Walking Lunge"];
+  var DB = ["Front Squats","Thruster","Cleans (any variation)","Snatches (any variation)","Push Press/Jerk","Deadlift","Lunge/Step Up"];
+  var GYM_RX = ["Pull-up","Chest-to-Bar Pull up","Bar Muscle Up","Ring Muscle Up","Burpee","Burpee Box Jump Overs","Burpees over the bar","Handstand Push Up","Strict Handstand Push Up","Handstand Walk","Ring Dip","Toes-to-Bar","Pistol Squats","Box Jumps","Box Step Ups (unweighted)"];
+  var GYM_SC = ["Pull-up","Jumping Pull up","Jumping Chest-to-Bar Pull up","Chest-to-Bar Pull up","Hanging Knee Raises","Toes-to-Bar","Push Up","Burpees","Burpees over the bar","Burpee box jump overs","Handstand Push Up","Strict Handstand Push Up","Ring Dip","Box Jumps","Box Step Ups (unweighted)"];
+  var METCON = ["Rowing","Airbike","Running","Single Unders","Double Unders","Crossovers"];
+  var LIFE = ["Health","Stress","Coping","Mood","Energy","Attention","Training Motivation","Sleep"];
+  var MOB = ["Neck","Upper Back","Lower Back","Left Shoulder","Right Shoulder","Left Elbow","Right Elbow","Left Wrist","Right Wrist","Left Hip","Right Hip","Left Knee","Right Knee","Left Ankle","Right Ankle"];
+
+  var REPS = { "pull-up": "reps", "chest-to-bar pull up": "reps", "bar muscle up": "reps", "ring muscle up": "reps", "handstand push up": "reps", "strict handstand push up": "reps", "handstand walk": "m", "toes-to-bar": "reps" };
+  var LIFTS = ["Snatch","Power Snatch","Hang Snatch","Clean","Power Clean","Hang Clean","Overhead Squat","Front Squat","Back Squat","Deadlift","Strict Press","Push Press","Push Jerk","Split Jerk"];
+  var LOADS = {
+    rx: { light: { M: "35–50 kg", F: "25–42.5 kg" }, heavy: { M: "+60 kg", F: "+50 kg" }, db: { M: "22.5 kg", F: "15 kg" } },
+    scaled: { light: { M: "30–42.5 kg", F: "20–30 kg" }, heavy: { M: "+42.5 kg", F: "+30 kg" }, db: { M: "15 kg", F: "10 kg" } }
+  };
+  var RATIOS = [
+    { chain: "pull", lift: "Back Squat", of: "Deadlift", lo: 0.80, hi: 0.90 },
+    { chain: "pull", lift: "Front Squat", of: "Back Squat", lo: 0.80, hi: 0.90 },
+    { chain: "pull", lift: "Overhead Squat", of: "Front Squat", lo: 0.80, hi: 0.90 },
+    { chain: "pull", lift: "Clean", of: "Front Squat", lo: 0.90, hi: 0.90 },
+    { chain: "pull", lift: "Clean", of: "Deadlift", lo: 0.55, hi: 0.55, fb: true },
+    { chain: "pull", lift: "Snatch", of: "Clean", lo: 0.80, hi: 0.80 },
+    { chain: "pull", lift: "Snatch", of: "Deadlift", lo: 0.45, hi: 0.45, fb: true },
+    { chain: "snatch", lift: "Power Snatch", of: "Snatch", lo: 0.90, hi: 0.90 },
+    { chain: "snatch", lift: "Hang Snatch", of: "Snatch", lo: 0.90, hi: 0.90 },
+    { chain: "clean", lift: "Power Clean", of: "Clean", lo: 0.90, hi: 0.90 },
+    { chain: "clean", lift: "Hang Clean", of: "Clean", lo: 0.90, hi: 0.90 },
+    { chain: "jerk", lift: "Split Jerk", of: "Clean", lo: 1.00, hi: 1.00 },
+    { chain: "jerk", lift: "Push Jerk", of: "Split Jerk", lo: 0.85, hi: 0.90 },
+    { chain: "jerk", lift: "Push Press", of: "Push Jerk", lo: 0.80, hi: 0.85 },
+    { chain: "jerk", lift: "Strict Press", of: "Push Press", lo: 0.80, hi: 0.85 }
+  ];
+  var ADVICE = {
+    "Back Squat|Deadlift": "Back Squat is low against Deadlift. Build squat strength with more back squat volume.",
+    "Front Squat|Back Squat": "Front Squat is low against Back Squat. Look at front rack position, upper back and trunk strength, and add front squats and paused front squats.",
+    "Overhead Squat|Front Squat": "Overhead Squat is low against Front Squat. Check overhead stability and mobility (shoulders, upper back, ankles) before adding load.",
+    "Clean|Front Squat": "Clean is low against Front Squat. The legs are strong enough, so look at timing, the catch and rack position.",
+    "Snatch|Clean": "Snatch is low against Clean. Prioritise snatch technique and overhead position.",
+    "Clean|Deadlift": "Clean is low against Deadlift. The pull is ahead of the clean, so work on technique and speed under the bar.",
+    "Snatch|Deadlift": "Snatch is low against Deadlift. Technique and overhead stability are the likely limiters.",
+    "Power Snatch|Snatch": "Power Snatch is low against Snatch. Bar speed and pull height are the likely limiters, so work on pulling power.",
+    "Hang Snatch|Snatch": "Hang Snatch is low against Snatch. Position and speed from the hang are the likely limiters, so practise the hang position and the second pull.",
+    "Power Clean|Clean": "Power Clean is low against Clean. Bar speed and pull height are the likely limiters, so work on pulling power.",
+    "Hang Clean|Clean": "Hang Clean is low against Clean. Position and speed from the hang are the likely limiters, so practise the hang position and the second pull.",
+    "Split Jerk|Clean": "Split Jerk is low against Clean. This is highly likely a rhythm and/or position issue.",
+    "Push Jerk|Split Jerk": "Push Jerk is low against Split Jerk. This is highly likely a rhythm and/or position issue.",
+    "Push Press|Push Jerk": "Push Press is low against Push Jerk. Build dip-drive and overhead pressing strength.",
+    "Strict Press|Push Press": "Strict Press is low against Push Press. This is a good place to start, while working on push jerk and split jerk rhythm and position. Build shoulder and triceps strength with strict pressing."
+  };
+  var QOPT = {
+    gymReps: [">10 reps per gymnastics element", "<10 reps per gymnastics element"],
+    gymStyle: ["Strict gymnastics movements", "Kipping"],
+    rowFormat: ["18-25 cal row for multiple rounds", "10-15 cal row for multiple rounds", "One hit of +40 calories"],
+    rowPref: ["Row for calories", "Row for metres", "No preference"],
+    liftPref: ["1 rep max (without fatigue)", "1 rep max (under fatigue/post WOD)", "3-5 reps with moderate weight", "5-10 reps with moderate weight", "+10 reps of light weight"]
+  };
+  var QANSWERS = ["gymReps","gymStyle","rowFormat","rowPref","t500","t1000","row2k","row5k","run1k","run5k","bike3k","bike10k","liftPref"];
+
+  function movementSections(mode) {
+    return [
+      { id: "light", title: "Light barbell cycling", short: "Light barbell", items: LIGHT_HEAVY },
+      { id: "heavy", title: "Heavy barbell cycling", short: "Heavy barbell", items: LIGHT_HEAVY },
+      { id: "db", title: "Dumbbell cycling", short: "Dumbbell", items: DB },
+      { id: "wb", title: "Wall balls", short: "Wall balls", items: ["Wall Balls"] },
+      { id: "gym", title: "Gymnastics", short: "Gymnastics", items: mode === "rx" ? GYM_RX : GYM_SC },
+      { id: "met", title: "Metcon", short: "Metcon", items: METCON }
+    ];
+  }
+  function keyOf(sec, name) { return sec + "|" + name.toLowerCase().trim(); }
+
+  /* ---------- example athlete ---------- */
+  function exampleScores() {
+    var s = {};
+    function put(sec, names, vals) { names.forEach(function (n, i) { s[keyOf(sec, n)] = vals[i]; }); }
+    put("light", LIGHT_HEAVY, [8,7,7,7,6,5,6,8,7,9,7,6]);
+    put("heavy", LIGHT_HEAVY, [8,7,6,7,5,4,6,8,7,9,7,5]);
+    put("db", DB, [8,8,7,6,8,9,8]);
+    put("wb", ["Wall Balls"], [7]);
+    put("gym", GYM_RX.concat(["Jumping Pull up","Jumping Chest-to-Bar Pull up","Hanging Knee Raises","Push Up","Burpees"]),
+      [8,5,2,1,7,7,7,4,2,1,6,6,4,8,9, 9,7,8,8,7]);
+    put("met", METCON, [7,6,6,9,5,3]);
+    put("life", LIFE, [8,5,7,7,6,7,9,5]);
+    put("mob", MOB, [8,6,7,5,6,8,8,6,7,7,7,8,8,4,5]);
+    return s;
+  }
+  function blankQ() {
+    return { gymReps: "", gymStyle: "", gymNotes: "", rowFormat: "", rowPref: "", t500: "", t1000: "", row2k: "", row5k: "", run1k: "", run5k: "", bike3k: "", bike10k: "", metNotes: "", liftPref: "", liftNotes: "" };
+  }
+  function normalize(st) {
+    st.goals = Object.assign({ m6: "", m12: "", y3: "" }, st.goals || {});
+    st.profile = Object.assign({ gender: "", height: "", weight: "" }, st.profile || {});
+    st.reps = st.reps || {};
+    st.lifts = st.lifts || {};
+    st.q = Object.assign(blankQ(), st.q || {});
+    st.mobNotes = st.mobNotes || "";
+    return st;
+  }
+  function freshState() {
+    return normalize({ mode: "rx", name: "", scores: {}, example: false });
+  }
+  function exampleState() {
+    var reps = {};
+    [["Pull-up", 14], ["Chest-to-Bar Pull up", 8], ["Bar Muscle Up", 1], ["Ring Muscle Up", 0], ["Handstand Push Up", 5], ["Strict Handstand Push Up", 1], ["Handstand Walk", 3], ["Toes-to-Bar", 12]].forEach(function (r) { reps[keyOf("gym", r[0])] = r[1]; });
+    return normalize({
+      mode: "rx", name: "Example athlete", example: true,
+      goals: { m6: "First strict handstand push up", m12: "Bar muscle up and ring muscle up", y3: "Compete Rx at a regional event" },
+      profile: { gender: "Male", height: "178", weight: "84" },
+      scores: exampleScores(), reps: reps,
+      lifts: { "Snatch": 75, "Power Snatch": 65, "Hang Snatch": 66, "Overhead Squat": 90, "Clean": 100, "Power Clean": 88, "Hang Clean": 80, "Front Squat": 115, "Back Squat": 140, "Deadlift": 170, "Strict Press": 60, "Push Press": 80, "Push Jerk": 85, "Split Jerk": 90 },
+      mobNotes: "Tight left ankle limits squat depth. Shoulders feel fine overhead.",
+      q: { gymReps: QOPT.gymReps[0], gymStyle: "Kipping", gymNotes: "Handles volume well, skills are the limiter.", rowFormat: QOPT.rowFormat[1], rowPref: "Row for calories", t500: "1:34", t1000: "3:20", row2k: "7:40", row5k: "20:10", run1k: "4:15", run5k: "23:30", bike3k: "4:50", bike10k: "16:10", metNotes: "", liftPref: QOPT.liftPref[2], liftNotes: "" }
+    });
+  }
+
+  var STORE = "pga-v1";
+  var state = null;
+  try {
+    var raw = localStorage.getItem(STORE);
+    if (raw) { var p = JSON.parse(raw); if (p && p.scores) state = p; }
+  } catch (e) {}
+  if (!state) state = exampleState();
+  if (state && state.example && !state.profile) state = exampleState();
+  state = normalize(state);
+  var view = "scores";
+  var tier2Open = false;
+
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+
+  /* ---------- scoring ---------- */
+  function parseScore(v) {
+    if (v === undefined || v === null || v === "") return null;
+    var n = Math.round(Number(v));
+    if (isNaN(n)) return null;
+    return Math.max(0, Math.min(10, n));
+  }
+  function bandOf(n) {
+    if (n === null) return "";
+    if (n >= 8) return "k";
+    if (n >= 6) return "c";
+    if (n >= 4) return "s";
+    return "p";
+  }
+  function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function $(id) { return document.getElementById(id); }
+
+  /* ---------- score entry ---------- */
+  var WL = ["light", "heavy", "db", "wb"];
+  function wlCount() {
+    var n = 0, t = 0;
+    movementSections(state.mode).forEach(function (s) {
+      if (WL.indexOf(s.id) < 0) return;
+      t += s.items.length;
+      s.items.forEach(function (m) { if (parseScore(state.scores[keyOf(s.id, m)]) !== null) n++; });
+    });
+    return n + "/" + t + " scored";
+  }
+  function getPath(o, p) { return p.split(".").reduce(function (a, k) { return a == null ? "" : a[k]; }, o); }
+  function setPath(o, p, v) { var ks = p.split("."); for (var i = 0; i < ks.length - 1; i++) o = o[ks[i]]; o[ks[ks.length - 1]] = v; }
+
+  function loadText(kind) {
+    var g = state.profile.gender, L = LOADS[state.mode][kind];
+    if (g === "Male") return L.M;
+    if (g === "Female") return L.F;
+    return "Male " + L.M + " · Female " + L.F;
+  }
+  function loadNote(kind) {
+    return "Reference load for " + (state.mode === "rx" ? "Rx" : "Scaled") + " " + { light: "light barbell", heavy: "heavy barbell", db: "dumbbell" }[kind] + " cycling: " + loadText(kind) + ". Score each movement at this load.";
+  }
+  function updateLoadNotes() {
+    document.querySelectorAll("[data-loadnote]").forEach(function (el) { el.textContent = loadNote(el.getAttribute("data-loadnote")); });
+  }
+
+  function rowHtml(sec, name) {
+    var k = keyOf(sec, name);
+    var v = parseScore(state.scores[k]);
+    var id = "in-" + k.replace(/[^a-z0-9]+/g, "-");
+    var unit = sec === "gym" ? REPS[name.toLowerCase()] : null;
+    var ctl = "";
+    if (unit) {
+      var rv = state.reps[k];
+      ctl += '<input class="rp num" type="number" inputmode="numeric" min="0" step="1" data-rk="' + esc(k) + '" value="' + (rv === undefined ? "" : rv) + '" placeholder="' + (unit === "m" ? "m" : "reps") + '" aria-label="' + esc(name) + (unit === "m" ? " unbroken metres" : " unbroken reps") + '">';
+    }
+    ctl += '<input class="sc num band-' + bandOf(v) + '" id="' + id + '" data-k="' + esc(k) + '" type="number" inputmode="numeric" min="0" max="10" step="1" value="' + (v === null ? "" : v) + '" aria-label="' + esc(name) + ' score">';
+    return '<div class="row"><label class="nm" for="' + id + '">' + esc(name) + '</label><span class="ctl">' + ctl + '</span></div>';
+  }
+  function sectionHtml(sec, items, open, note, title, extra, loadKind) {
+    var scored = items.filter(function (n) { return parseScore(state.scores[keyOf(sec, n)]) !== null; }).length;
+    var notes = "";
+    if (note) notes += '<p class="sec-note">' + esc(note) + '</p>';
+    if (loadKind) notes += '<p class="sec-note load" data-loadnote="' + loadKind + '">' + esc(loadNote(loadKind)) + '</p>';
+    return '<details class="card"' + (open ? " open" : "") + ' data-sec="' + sec + '"><summary><h2>' + esc(title) + '</h2><span class="prog" data-prog="' + sec + '">' + scored + "/" + items.length + ' scored</span></summary>' +
+      '<div class="sec-body">' + notes + '<div class="rows">' + items.map(function (n) { return rowHtml(sec, n); }).join("") + '</div>' + (extra || "") + '</div></details>';
+  }
+  function pctTxt(x) { return Math.round(x * 100); }
+  function ratioText(R) { return (R.lo === R.hi ? "" : pctTxt(R.lo) + "–") + pctTxt(R.hi) + "% of " + R.of; }
+  function ratioRef() {
+    var seen = [], lines = [];
+    RATIOS.forEach(function (R) { if (seen.indexOf(R.lift) < 0) seen.push(R.lift); });
+    var out = '<li><b>Deadlift</b> baseline, 100%</li><li><b>Snatch</b> baseline for its variations, 100%</li><li><b>Clean</b> baseline for its variations, 100%</li>';
+    seen.forEach(function (l) {
+      out += '<li><b>' + esc(l) + '</b> ' + RATIOS.filter(function (R) { return R.lift === l; }).map(function (R) { return esc(ratioText(R)); }).join(" or ") + '</li>';
+    });
+    return '<div class="sec-note" style="margin-top:14px"><b>Target strength ratios</b>. The full plan compares your 1RMs against these.</div><ul class="refl">' + out + '</ul>';
+  }
+  function ratioRows() {
+    var out = [];
+    var up = function (v) { return Math.max(2.5, Math.ceil(v / 2.5) * 2.5); };
+    var near = function (v) { return Math.max(2.5, Math.round(v / 2.5) * 2.5); };
+    var hasPrimary = function (l) { return RATIOS.some(function (Q) { return !Q.fb && Q.lift === l && Number(state.lifts[Q.lift]) > 0 && Number(state.lifts[Q.of]) > 0; }); };
+    RATIOS.forEach(function (R) {
+      if (R.fb && hasPrimary(R.lift)) return;
+      var c = Number(state.lifts[R.lift]), p = Number(state.lifts[R.of]);
+      if (!(c > 0) || !(p > 0)) return;
+      var lo = pctTxt(R.lo), hi = pctTxt(R.hi);
+      if (lo === hi) { lo -= 3; hi += 3; }
+      var pr = pctTxt(c / p);
+      var st = pr < lo ? "below" : pr > hi ? "above" : "in";
+      out.push({ R: R, c: c, p: p, pr: pr, st: st, lo: lo, hi: hi, need: st === "below" ? up(p * R.lo - c) : 0, over: st === "above" ? near(c - p * R.hi) : 0 });
+    });
+    return out;
+  }
+  function ratioLine() {
+    var rows = ratioRows();
+    if (!rows.length) return "";
+    var inN = rows.filter(function (x) { return x.st === "in"; }).length;
+    var out = rows.filter(function (x) { return x.st !== "in"; });
+    if (!out.length) return "Strength ratios: all " + rows.length + " compared lifts are in range.";
+    var far = out.map(function (x) {
+      var lo = pctTxt(x.R.lo), hi = pctTxt(x.R.hi);
+      if (lo === hi) { lo -= 3; hi += 3; }
+      return { x: x, d: x.pr < lo ? lo - x.pr : x.pr - hi };
+    }).sort(function (a, b) { return b.d - a.d; })[0].x;
+    return "Strength ratios: " + inN + " of " + rows.length + " in range. Furthest out is " + far.R.lift + ", about " + (far.st === "below" ? far.need + " kg short of range." : far.over + " kg above range.");
+  }
+
+  var SQUAT_LIFTS = ["Back Squat", "Front Squat", "Overhead Squat"];
+  function isSquatRow(x) {
+    return (x.st === "below" && SQUAT_LIFTS.indexOf(x.R.lift) >= 0) || (x.st === "above" && SQUAT_LIFTS.indexOf(x.R.of) >= 0);
+  }
+  var SQ_MAP = { "squat snatch": "Overhead Squat", "overhead squat": "Overhead Squat", "squat clean": "Front Squat", "front squat": "Front Squat", "front squats": "Front Squat" };
+  function squatTheme(r) {
+    var sev = { "Overhead Squat": 0, "Front Squat": 0, "Back Squat": 0 }, byName = {}, order = [], extreme = false;
+    var ent = r.scored.filter(function (m) { return m.score <= 5 && WL.indexOf(m.sec) >= 0 && SQ_MAP[m.name.toLowerCase()]; });
+    ent.forEach(function (m) {
+      var k = m.name.toLowerCase();
+      if (!byName[k]) { byName[k] = { name: m.name, parts: [] }; order.push(k); }
+      byName[k].parts.push(m.cat.toLowerCase() + " " + m.score);
+      sev[SQ_MAP[k]] += 8 - m.score;
+    });
+    var rr = ratioRows().filter(isSquatRow), sents = [];
+    rr.forEach(function (x) {
+      var below = x.st === "below", L = below ? x.R.lift : x.R.of;
+      var deficit = below ? x.lo - x.pr : x.pr - x.hi;
+      sents.push(below ? x.R.lift + " is below range against " + x.R.of : x.R.of + " may be lagging, as " + x.R.lift + " is above range against it");
+      sev[L] += below ? 3 : 2;
+      if (deficit >= 10) { extreme = true; sev[L] += 6; }
+    });
+    var on = (ent.length >= 3 && order.length >= 2) || extreme || (rr.length >= 1 && ent.length >= 2);
+    var lifts = ["Overhead Squat", "Front Squat", "Back Squat"], emphasis = lifts[0];
+    lifts.forEach(function (l) { if (sev[l] > sev[emphasis]) emphasis = l; });
+    var movs = order.map(function (k) { return byName[k].name + " (" + byName[k].parts.join(", ") + ")"; }).join(", ");
+    var text = "";
+    if (ent.length && rr.length) text = "Squats seem to be an issue across " + movs + ", and there is an observable deficit: " + sents.join("; ") + ". ";
+    else if (ent.length) text = "Squats seem to be an issue across " + movs + ". ";
+    else text = "There is an observable deficit in the squat ratios: " + sents.join("; ") + ". ";
+    var where = emphasis === "Overhead Squat" ? "in snatch variations and complexes, or in stand-alone training of the Overhead Squat"
+      : emphasis === "Front Squat" ? "in clean variations and complexes, or in stand-alone training of the Front Squat"
+      : "in stand-alone training of the Back Squat";
+    text += "Suggestion: be sure to emphasise " + emphasis + "s. This can be " + where + ".";
+    return { on: on, text: text, emphasis: emphasis };
+  }
+
+  var ABOVE = { "Push Press|Push Jerk": "Push Press is higher than Push Jerk. It may be a rhythm and/or positioning issue in the jerk." };
+  function devOf(x) { return x.st === "below" ? x.lo - x.pr : x.pr - x.hi; }
+  function mobHits(words) {
+    var hits = [], pain = false;
+    MOB.forEach(function (n) {
+      if (!words.some(function (w) { return n.indexOf(w) >= 0; })) return;
+      var v = parseScore(state.scores[keyOf("mob", n)]);
+      if (v === null) return;
+      if (v === 0) { pain = true; hits.push(n + " (pain)"); }
+      else if (v <= 5) hits.push(n + " (" + v + ")");
+    });
+    return { hits: hits, pain: pain };
+  }
+  function mobFlag(words) {
+    var h = mobHits(words);
+    if (!h.hits.length) return "";
+    return " Important variable to address: mobility is limited or painful in " + h.hits.join(", ") + (h.pain ? ", so seek a qualified professional opinion for the pain" : "") + ". Address this alongside, or before, adding load.";
+  }
+  function wlThemes(r) {
+    var out = [], sq = squatTheme(r);
+    if (sq.on) out.push({ head: "Squatting", text: sq.text + mobFlag(["Hip", "Knee", "Ankle", "Lower Back", "Upper Back"].concat(sq.emphasis === "Overhead Squat" ? ["Shoulder", "Elbow", "Wrist"] : [])) });
+    var allR = ratioRows();
+    var find = function (l, o) { return allR.filter(function (x) { return x.R.lift === l && x.R.of === o; })[0]; };
+    var sjR = find("Split Jerk", "Clean"), pjR = find("Push Jerk", "Split Jerk"), ppR = find("Push Press", "Push Jerk"), spR = find("Strict Press", "Push Press");
+    var jpRows = [sjR, pjR, ppR, spR].filter(Boolean);
+    var low = function (x) { return x && x.st === "below" && devOf(x) >= 5; };
+    var sjLow = low(sjR), pjLow = low(pjR), spLow = low(spR), ppLowR = ppR && ppR.st === "below";
+    var sjKg = Number(state.lifts["Split Jerk"]), ppKg = Number(state.lifts["Push Press"]);
+    var ppHigh = (ppR && ppR.st === "above" && devOf(ppR) >= 5) || (ppKg > 0 && sjKg > 0 && pctTxt(ppKg / sjKg) > 77 && ppR && ppR.st !== "below");
+    var tech = sjLow || pjLow || ppHigh;
+    if (spLow || tech) {
+      var contrast = [];
+      if (spLow) contrast.push(ppLowR ? "pressing strength is behind (Strict Press and Push Press are both below range)" : "Strict Press is behind Push Press");
+      if (tech) {
+        var why = [];
+        if (sjLow) why.push("Split Jerk is low against Clean");
+        if (pjLow) why.push("Push Jerk is low against Split Jerk");
+        if (ppHigh) why.push("Push Press is high relative to the jerks");
+        contrast.push("the jerks are not turning your strength into load (" + why.join("; ") + ")");
+      }
+      var steps = [];
+      var mh = mobHits(["Shoulder", "Elbow", "Wrist", "Upper Back"].concat(tech ? ["Hip", "Knee", "Ankle"] : []));
+      if (mh.hits.length) steps.push("Mobility and pain: these can limit strength, speed and positions (" + mh.hits.join(", ") + ")." + (mh.pain ? " Seek a qualified professional opinion for the pain first." : " Work on this alongside, or before, adding load."));
+      if (spLow) steps.push("Press strength: " + (ppLowR ? "build Strict Press and Push Press strength. Goal: add " + spR.need + " kg to Strict Press and " + ppR.need + " kg to Push Press." : "build Strict Press strength. Goal: add " + spR.need + " kg.") + " Strength is likely the more important quality across the press and jerk variations.");
+      if (tech) {
+        var fixes = [];
+        if (spLow) fixes.push("strengthening");
+        if (mh.hits.length) fixes.push("improving mobility");
+        var gapTxt = function (lift, kg) {
+          return fixes.length
+            ? " Closing the " + lift + " gap, by " + fixes.join(" and ") + " alongside rhythm and position work, could increase your " + lift + " by about " + kg + " kg."
+            : " With strength and mobility sound, this is likely a rhythm, balance and position issue. Closing the " + lift + " gap could increase your " + lift + " by about " + kg + " kg without an increase in strength numbers.";
+        };
+        var t = "Rhythm and position: check you can access a good" + (sjLow ? " split" : "") + " receiving position, and that your dip is balanced and your drive is longer than your dip.";
+        if (sjLow) t += gapTxt("Split Jerk", sjR.need);
+        if (pjLow) t += gapTxt("Push Jerk", pjR.need);
+        steps.push(t);
+      }
+      out.push({ head: "Jerk and press", text: (function (c) { return c.charAt(0).toUpperCase() + c.slice(1); })(contrast.join(", while ")) + ". In order of importance: " + steps.map(function (x, i) { return (i + 1) + ") " + x; }).join(" ") });
+    }
+    allR.filter(function (x) { return x.st !== "in" && devOf(x) >= 5 && !(sq.on && isSquatRow(x)) && jpRows.indexOf(x) < 0; }).forEach(function (x) {
+      out.push({
+        head: x.R.lift + " against " + x.R.of,
+        text: x.st === "below"
+          ? (ADVICE[x.R.lift + "|" + x.R.of] || "") + (x.R.lift === "Split Jerk" ? " Check you can access a good split receiving position, and that your dip is balanced and your drive is longer than your dip. By closing this gap you could increase your Split Jerk by about " + x.need + " kg without an increase in strength numbers." : x.R.lift === "Push Jerk" ? " Check you can access a good receiving position, and that your dip is balanced and your drive is longer than your dip. By closing this gap you could increase your Push Jerk by about " + x.need + " kg without an increase in strength numbers." : " Goal: add " + x.need + " kg.")
+          : ABOVE[x.R.lift + "|" + x.R.of] || (x.R.lift + " is above range by about " + x.over + " kg, so " + x.R.of + " may be the limiter.")
+      });
+    });
+    var byName = {};
+    r.scored.filter(function (m) { return m.score <= 5 && WL.indexOf(m.sec) >= 0 && !(sq.on && SQ_MAP[m.name.toLowerCase()]); }).forEach(function (m) {
+      var k = norm(m.name); (byName[k] = byName[k] || []).push(m);
+    });
+    Object.keys(byName).forEach(function (k) {
+      var l = byName[k];
+      if (l.length >= 2) out.push({ head: l[0].name, text: l[0].name + " is rated 5 or below in " + l.map(function (m) { return m.cat.toLowerCase() + " (" + m.score + ")"; }).join(" and ") + ". Low across loads usually points to a skill or strength gap rather than conditioning." });
+    });
+    var rows = ratioRows();
+    if (!out.length && rows.length >= 4 && !rows.some(function (x) { return x.st !== "in" && devOf(x) >= 5; })) {
+      out.push({ head: "Balanced", text: "Your lifts are relatively balanced against each other. To improve further, make strength the first port of call. You can keep improving technique while building strength through the absolute lifts: deadlift, squats and presses." });
+    }
+    return out;
+  }
+
+  var KIP = [
+    { label: "Kipping bar work", names: ["pull-up", "chest-to-bar pull up", "toes-to-bar", "bar muscle up"], suggest: "identify whether it is the press or the pull. The press is the start of the kip swing and the pull is the height you get from it. Can you keep the rhythm (the press) but lose height (the pull)?" },
+    { label: "Handstand push-ups", names: ["handstand push up"], suggest: "identify whether it is the dip and drive or the press out. Can you keep the rhythm of the dip and drive but lose height at the press?" }
+  ];
+  function gymThemes(r) {
+    var out = [];
+    KIP.forEach(function (k) {
+      var hit = r.scored.filter(function (m) { return m.sec === "gym" && m.score <= 5 && k.names.indexOf(m.name.toLowerCase()) >= 0; });
+      if (hit.length >= 2 || hit.some(function (m) { return m.score <= 3; })) {
+        var list = hit.map(function (m) { return m.name + " (" + m.score + ")"; }).join(", ");
+        out.push({ head: k.label, text: (hit.length > 1 ? k.label + " seems to be an issue across " + list + ". " : list + " is a clear gap. ") + "Suggestion: " + k.suggest });
+      }
+    });
+    var sc = function (n) { var m = r.scored.filter(function (x) { return x.sec === "gym" && x.name.toLowerCase() === n; })[0]; return m ? m.score : null; };
+    var dip = sc("ring dip"), mu = sc("ring muscle up");
+    var pulls = [["Pull-up", sc("pull-up")], ["Chest-to-Bar Pull up", sc("chest-to-bar pull up")]].filter(function (p) { return p[1] !== null; });
+    var pullAvg = pulls.length ? pulls.reduce(function (a, p) { return a + p[1]; }, 0) / pulls.length : null;
+    var pullTxt = pulls.map(function (p) { return p[0] + " (" + p[1] + ")"; }).join(", ");
+    var pullLow = pullAvg !== null && pullAvg <= 5, dipLow = dip !== null && dip <= 5;
+    if (mu !== null && mu <= 5) {
+      var t = "Ring Muscle Up (" + mu + ") is limited. ";
+      if (pullLow && dipLow) t += "Both the pull and the dip are limited (" + pullTxt + ", Ring Dip (" + dip + ")). Suggestion: build both, with pull-ups and chest-to-bar for the pull and strict ring dips for the press, then bring them together in the muscle-up.";
+      else if (pullLow) t += "The dip is not the limiter, but the pull is (" + pullTxt + "). Suggestion: start with pull-up variations to build the pull, then return to the muscle-up.";
+      else if (dipLow) t += "The pull is not the limiter, but the dip is (Ring Dip (" + dip + ")). Suggestion: start with ring dips to build the press, then return to the muscle-up.";
+      else t += "Pulling and dips are not the limiter, so look at the swing and the transition. Suggestion: can you keep the rhythm of the swing but fail to get over the rings? Practise the swing and the transition in small, high-quality sets.";
+      out.push({ head: "Ring muscle-ups", text: t });
+    } else if (dip !== null && dip <= 3) {
+      out.push({ head: "Ring dips", text: "Ring Dip (" + dip + ") is a clear gap. Suggestion: build pressing strength with strict and tempo ring dips and ring support holds, then add rhythm once you can control the full range." });
+    }
+    return out;
+  }
+  /* ---------- metcon benchmarks ---------- */
+  var MET_LEVELS = ["Novice", "Intermediate", "Advanced", "Sub-elite", "Elite"];
+  /* upper time limit in seconds for Elite, Sub-elite, Advanced, Intermediate; slower than the last is Novice. Male figures; erg times are 20% slower for females. */
+  var MET = {
+    row500: { name: "500m row", erg: true, cut: [85, 95, 110, 130] },
+    row1k: { name: "1000m row", erg: true, cut: [180, 195, 210, 270] },
+    row5k: { name: "5km row", erg: true, cut: [1080, 1140, 1260, 1380] },
+    row2k: { name: "2km row", erg: true, cut: [405, 435, 465, 495] },
+    run1k: { name: "1km run", erg: false, cut: [240, 300, 360, 420] },
+    run5k: { name: "5km run", erg: false, cut: [1080, 1350, 1650, 2100] },
+    bike3k: { name: "3km Airbike", erg: true, cut: [225, 270, 300, 330] },
+    bike10k: { name: "10km Airbike", erg: true, cut: [780, 900, 1020, 1080] }
+  };
+  function parseTime(v) {
+    v = String(v || "").trim().toLowerCase().replace(/min$/, "").trim();
+    if (!v) return null;
+    var p = v.split(":");
+    if (p.length > 3 || p.some(function (x) { return !/^\d+(\.\d+)?$/.test(x); })) return null;
+    var n = p.map(Number);
+    var sec = p.length === 1 ? n[0] * 60 : p.length === 2 ? n[0] * 60 + n[1] : n[0] * 3600 + n[1] * 60 + n[2];
+    return sec > 0 ? sec : null;
+  }
+  function metLevel(id, v) {
+    var t = parseTime(v), M = MET[id];
+    if (t === null || !M) return null;
+    var f = M.erg && state.profile.gender === "Female" ? 1.2 : 1;
+    for (var i = 0; i < M.cut.length; i++) if (t <= M.cut[i] * f) return { i: 4 - i, t: t };
+    return { i: 0, t: t };
+  }
+  function metThemes(r) {
+    var Q = state.q, out = [], lvls = [];
+    var groups = [
+      ["Row", [["row500", Q.t500, "500m"], ["row1k", Q.t1000, "1000m"], ["row2k", Q.row2k, "2km"], ["row5k", Q.row5k, "5km"]]],
+      ["Airbike", [["bike3k", Q.bike3k, "3km"], ["bike10k", Q.bike10k, "10km"]]],
+      ["Run", [["run1k", Q.run1k, "1km"], ["run5k", Q.run5k, "5km"]]]
+    ];
+    groups.forEach(function (g) {
+      var got = g[1].map(function (t) { var l = metLevel(t[0], t[1]); return l ? { i: l.i, d: t[2] } : null; }).filter(Boolean);
+      got.forEach(function (x) { lvls.push(x.i); });
+      if (got.length < 2) return;
+      var a = got[0], b = got[got.length - 1], d = a.i - b.i, hd = g[0] + " " + a.d + " against " + b.d;
+      var both = a.d + " " + MET_LEVELS[a.i] + ", " + b.d + " " + MET_LEVELS[b.i];
+      if (d >= 1) out.push({ head: hd, text: "Aerobic power is ahead of aerobic endurance (" + both + "). Suggestion: build the longer efforts with steady, sustained work and longer intervals so the " + b.d + " catches up with the " + a.d + "." });
+      else if (d <= -1) out.push({ head: hd, text: "Aerobic endurance is ahead of aerobic power (" + both + "). Suggestion: build the shorter efforts with hard intervals near the " + a.d + " pace so the " + a.d + " catches up with the " + b.d + "." });
+    });
+    if (lvls.length >= 2 && lvls.every(function (x) { return x <= 1; })) {
+      out.unshift({ head: "Aerobic base", text: "Every benchmark entered is Novice or Intermediate, so general aerobic base is the main limiter. Regular steady-state work comes before specific interval work." });
+    }
+    return out;
+  }
+
+  function modalityHtml(r) {
+    var h = "";
+    [["Weightlifting summary", wlThemes(r)], ["Gymnastics summary", gymThemes(r)], ["Metabolic conditioning summary", metThemes(r)]].forEach(function (g) {
+      if (!g[1].length) return;
+      h += '<div class="card ctx"><h3>' + g[0] + '</h3><ul>' + g[1].map(function (t) { return '<li><b>' + esc(t.head) + '.</b> ' + esc(t.text) + '</li>'; }).join("") + '</ul></div>';
+    });
+    return h;
+  }
+
+  function level(x) {
+    if (x < 1.5) return "Beginner";
+    if (x < 1.75) return "Intermediate";
+    if (x < 2.25) return "Advanced";
+    if (x <= 2.5) return "Sub-elite";
+    return "Elite";
+  }
+  function baseInfo(lift) {
+    var kg = Number(state.lifts[lift]);
+    if (!(kg > 0)) return null;
+    var bw = parseFloat(state.profile.weight), mult = bw > 0 ? kg / bw : null;
+    var chip = "Baseline", note;
+    if (mult === null) note = lift === "Deadlift" ? "Add bodyweight to see a level." : "Add bodyweight to see the multiple.";
+    else {
+      note = mult.toFixed(2) + "× bodyweight.";
+      if (lift === "Deadlift") chip = level(mult);
+    }
+    return { kg: kg, chip: chip, note: note, mult: mult };
+  }
+  function baseRowHtml(lift) {
+    var b = baseInfo(lift);
+    if (!b) return "";
+    return '<li class="rt"><div class="rt-l"><b>' + esc(lift) + '</b><div class="sub">baseline</div></div><div class="rt-n num"><b>' + b.kg + ' kg</b></div><span class="chip rt-c band-k">' + b.chip + '</span><div class="rt-t">' + b.note + '</div></li>';
+  }
+  function ratiosHtml(r) {
+    var rows = ratioRows();
+    var chains = [["pull", "", "Deadlift"], ["snatch", "Snatch variations", "Snatch"], ["clean", "Clean variations", "Clean"], ["jerk", "Jerk and press chain", ""]];
+    var h = '<div class="card ctx ratios"><h3>Strength ratios</h3>';
+    var any = rows.length || chains.some(function (ch) { return Number(state.lifts[ch[2]]) > 0; });
+    if (!any) return h + '<p class="empty">Enter 1RMs to compare lifts against the target ratios.</p></div>';
+    chains.forEach(function (ch) {
+      var list = rows.filter(function (x) { return x.R.chain === ch[0]; });
+      var base = baseRowHtml(ch[2]);
+      if (!list.length && !base) return;
+      h += (ch[1] ? '<div class="sub-h">' + ch[1] + '</div>' : "") + '<ul class="rl">' + base;
+      list.forEach(function (x) {
+        var cls = x.st === "in" ? "band-c" : x.st === "below" ? "band-s" : "band-k";
+        var lbl = x.st === "in" ? "In range" : x.st === "below" ? "Below range" : "Above range";
+        var note = x.st === "in" ? "No change needed." : x.st === "below" ? "Goal: add " + x.need + " kg." : "About " + x.over + " kg above range.";
+        h += '<li class="rt"><div class="rt-l"><b>' + esc(x.R.lift) + '</b><div class="sub">compared with ' + esc(x.R.of) + '</div></div>' +
+          '<div class="rt-n num"><b>' + x.c + ' kg</b></div>' +
+          '<span class="chip rt-c ' + cls + '">' + lbl + '</span>' +
+          '<div class="rt-t">' + note + '</div></li>';
+      });
+      h += '</ul>';
+    });
+    if (rows.length && !rows.some(function (x) { return x.st !== "in"; })) h += '<p class="fine">Every lift that can be compared is in range.</p>';
+    h += '<p class="fine">Where a target is a single figure, 3 percentage points either side count as in range. Suggested numbers are guides for a coach to confirm. The deadlift level uses bodyweight multiples: Beginner under 1.5×, Intermediate 1.5 to 1.75×, Advanced 1.75 to 2.25×, Sub-elite 2.25 to 2.5×, Elite over 2.5×.</p></div>';
+    return h;
+  }
+
+  function liftsSection() {
+    var n = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; }).length;
+    var rows = LIFTS.map(function (l, i) {
+      var v = state.lifts[l], id = "lift-" + i;
+      return '<div class="row"><label class="nm" for="' + id + '">' + esc(l) + '</label><span class="ctl"><input class="kg num" id="' + id + '" type="number" inputmode="decimal" min="0" step="0.5" data-lift="' + esc(l) + '" value="' + (v === undefined ? "" : v) + '" aria-label="' + esc(l) + ' one rep max in kilograms"><span class="unit">kg</span></span></div>';
+    }).join("");
+    return '<details class="card" data-sec="lifts"><summary><h2>1RMs</h2><span class="prog" data-prog="lifts">' + n + '/' + LIFTS.length + ' entered</span></summary><div class="sec-body"><p class="sec-note">Kilograms. Leave blank if not tested.</p><div class="rows">' + rows + '</div>' + ratioRef() + '</div></details>';
+  }
+  function radioGroup(path, legend, opts) {
+    var cur = getPath(state, path);
+    return '<fieldset class="qq"><legend>' + esc(legend) + '</legend>' + opts.map(function (o, i) {
+      var id = "q-" + path.replace(/\./g, "-") + "-" + i;
+      return '<label class="opt" for="' + id + '"><input type="radio" id="' + id + '" name="' + path + '" data-bind="' + path + '" value="' + esc(o) + '"' + (cur === o ? " checked" : "") + '><span>' + esc(o) + '</span></label>';
+    }).join("") + '</fieldset>';
+  }
+  function textField(path, label, ph) {
+    var id = "q-" + path.replace(/\./g, "-");
+    return '<label class="fl" for="' + id + '">' + esc(label) + '<input type="text" id="' + id + '" data-bind="' + path + '" value="' + esc(getPath(state, path)) + '" placeholder="' + esc(ph || "") + '"></label>';
+  }
+  function notesField(path, label, extraClass) {
+    var id = "q-" + path.replace(/\./g, "-");
+    return '<label class="fl ' + (extraClass || "") + '" for="' + id + '">' + esc(label) + '<textarea class="ta" id="' + id + '" data-bind="' + path + '" rows="3">' + esc(getPath(state, path)) + '</textarea></label>';
+  }
+  function qualCount() { return QANSWERS.filter(function (k) { return state.q[k] !== ""; }).length + "/" + QANSWERS.length + " answered"; }
+  var QPRE = "If it were to come up in a workout, which would you prefer more...";
+  function gymQual() {
+    return '<div class="qg"><h3>Qualifying questions</h3>' +
+      radioGroup("q.gymReps", QPRE, QOPT.gymReps) +
+      radioGroup("q.gymStyle", "Would you prefer more...", QOPT.gymStyle) +
+      notesField("q.gymNotes", "Any additional comments about your overall gymnastics performance level?", "notes") + '</div>';
+  }
+  function metQual() {
+    return '<div class="qg"><h3>Qualifying questions</h3>' +
+      radioGroup("q.rowFormat", QPRE, QOPT.rowFormat) +
+      radioGroup("q.rowPref", "Do you prefer to...", QOPT.rowPref) +
+      '<div class="times">' +
+      textField("q.t500", "What is your 500m row time?", "m:ss") +
+      textField("q.t1000", "What is your 1000m row time?", "m:ss") +
+      textField("q.row2k", "What is your 2km row time?", "m:ss") +
+      textField("q.row5k", "What is your 5km row time?", "mm:ss") +
+      textField("q.run1k", "What is your 1km run time?", "m:ss") +
+      textField("q.run5k", "What is your 5km run time?", "mm:ss") +
+      textField("q.bike3k", "What is your 3km Airbike time?", "m:ss") +
+      textField("q.bike10k", "What is your 10km Airbike time?", "mm:ss") + '</div>' +
+      notesField("q.metNotes", "Any additional comments about your overall metabolic conditioning performance level?", "notes") + '</div>';
+  }
+  function liftQualCard() {
+    return '<details class="card" data-sec="wlq"><summary><h2>Qualifying questions</h2></summary><div class="sec-body"><div class="qg">' +
+      radioGroup("q.liftPref", QPRE, QOPT.liftPref) +
+      notesField("q.liftNotes", "Any additional comments about your overall weightlifting performance level?", "notes") + '</div></div></details>';
+  }
+
+  function renderScores() {
+    var h = "", P = state.profile;
+    var gopts = [["", "Select"], ["Male", "Male"], ["Female", "Female"], ["Other", "Other / prefer not to say"]].map(function (o) {
+      return '<option value="' + o[0] + '"' + (P.gender === o[0] ? " selected" : "") + '>' + o[1] + '</option>';
+    }).join("");
+    h += '<div class="card"><div class="fields">' +
+      '<label class="wide">Athlete<input type="text" id="f-name" data-bind="name" value="' + esc(state.name) + '" placeholder="Name"></label>' +
+      '<div class="trio">' +
+      '<label>Gender<select id="f-gender" data-bind="profile.gender">' + gopts + '</select></label>' +
+      '<label>Height (cm)<input type="number" inputmode="decimal" min="0" step="1" id="f-height" data-bind="profile.height" value="' + esc(P.height) + '"></label>' +
+      '<label>Weight (kg)<input type="number" inputmode="decimal" min="0" step="0.1" id="f-weight" data-bind="profile.weight" value="' + esc(P.weight) + '"></label></div>' +
+      '<label>6-month goal<input type="text" id="f-m6" data-bind="goals.m6" value="' + esc(state.goals.m6) + '"></label>' +
+      '<label>12-month goal<input type="text" id="f-m12" data-bind="goals.m12" value="' + esc(state.goals.m12) + '"></label>' +
+      '<label class="wide">3-year goal<input type="text" id="f-y3" data-bind="goals.y3" value="' + esc(state.goals.y3) + '"></label></div></div>';
+    var wl = "", rest = "";
+    movementSections(state.mode).forEach(function (s) {
+      var isWl = WL.indexOf(s.id) >= 0;
+      var note = s.id === "gym" ? "The dashed box beside each score is max unbroken reps (metres for handstand walk)." : "";
+      var extra = s.id === "gym" ? gymQual() : (s.id === "met" ? metQual() : "");
+      var html = sectionHtml(s.id, s.items, false, note, s.title, extra, (s.id === "light" || s.id === "heavy" || s.id === "db") ? s.id : "");
+      if (isWl) wl += html; else rest += html;
+    });
+    wl += liftsSection() + liftQualCard();
+    h += '<details class="card group" data-sec="wl"><summary><h2>Weightlifting</h2><span class="prog" data-prog="wl">' + wlCount() + '</span></summary><div class="sec-body"><p class="sec-note">Barbell cycling, dumbbell cycling, wall balls, 1RMs and qualifying questions.</p>' + wl + '</div></details>';
+    h += rest;
+    h += sectionHtml("life", LIFE, false, "Score so that 10 is best. Low stress is a 10, poor sleep is a 1.", "Lifestyle factors");
+    h += sectionHtml("mob", MOB, false, "10 is full, comfortable range for the joint. Any pain scores 0.", "Mobility",
+      '<div class="cmt">' + notesField("mobNotes", "Additional comments about mobility") + '</div>');
+    $("panel-scores").innerHTML = h;
+  }
+
+  function updateProgress() {
+    var secs = movementSections(state.mode).map(function (s) { return { id: s.id, items: s.items }; });
+    secs.push({ id: "life", items: LIFE }, { id: "mob", items: MOB });
+    secs.forEach(function (s) {
+      var n = s.items.filter(function (m) { return parseScore(state.scores[keyOf(s.id, m)]) !== null; }).length;
+      var el = document.querySelector('[data-prog="' + s.id + '"]');
+      if (el) el.textContent = n + "/" + s.items.length + " scored";
+    });
+    var we = document.querySelector('[data-prog="wl"]');
+    if (we) we.textContent = wlCount();
+    var le = document.querySelector('[data-prog="lifts"]');
+    if (le) le.textContent = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; }).length + "/" + LIFTS.length + " entered";
+    var qe = document.querySelector('[data-prog="qual"]');
+    if (qe) qe.textContent = qualCount();
+  }
+
+  /* ---------- plan ---------- */
+  var HOW = {
+    p: "Small sets, aiming for quality rather than reps or time. Control the environment and keep fatigue out. Start with holds in the end positions, or reduce range and load, if needed. One movement at a time, no supersets. If another movement shares the day, choose opposing muscle groups or upper against lower body.",
+    s: "Small sets and EMOMs with a little compounding fatigue that only shows in later rounds. Quality holds throughout. Pair a cardio element with a gymnastics or weightlifting element so breathing gets hard without pushing to muscular failure.",
+    c: "Use these in regular WODs and in bigger EMOM sets. Keep load or reps manageable (bands, fewer reps) so the workout stimulus is met without overreaching. This is the more open training environment."
+  };
+
+  function collect() {
+    var all = [];
+    movementSections(state.mode).forEach(function (s) {
+      s.items.forEach(function (n) {
+        all.push({ name: n, sec: s.id, cat: s.short, score: parseScore(state.scores[keyOf(s.id, n)]), reps: s.id === "gym" ? state.reps[keyOf(s.id, n)] : undefined, unit: s.id === "gym" ? REPS[n.toLowerCase()] : undefined });
+      });
+    });
+    return all;
+  }
+  function sorted(list) { return list.slice().sort(function (a, b) { return a.score - b.score; }); }
+  function liHtml(m) {
+    var rp = (m.unit && m.reps !== undefined && m.reps !== "") ? "<small>" + esc(m.reps) + (m.unit === "m" ? " m" : " unbroken") + "</small>" : "";
+    return '<li><span class="nm">' + esc(m.name) + rp + '</span><span class="cat">' + esc(m.cat) + '</span><span class="n band-' + bandOf(m.score) + '">' + m.score + '</span></li>';
+  }
+  function listHtml(list, emptyText) {
+    if (!list.length) return '<p class="empty">' + emptyText + '</p>';
+    return '<ul class="mv">' + list.map(liHtml).join("") + '</ul>';
+  }
+  function norm(n) { return n.toLowerCase().replace(/\s+/g, " ").trim().replace(/s$/, ""); }
+
+  function compute() {
+    var all = collect();
+    var scored = all.filter(function (m) { return m.score !== null; });
+    var r = {
+      all: all, scored: scored,
+      p: sorted(scored.filter(function (m) { return m.score <= 3; })),
+      s: sorted(scored.filter(function (m) { return m.score >= 4 && m.score <= 5; })),
+      c6: scored.filter(function (m) { return m.score === 6; }),
+      c7: scored.filter(function (m) { return m.score === 7; }),
+      k: scored.filter(function (m) { return m.score >= 8; })
+    };
+    var nc = r.c6.length + r.c7.length;
+    r.n = { p: r.p.length, s: r.s.length, c: nc };
+    r.touch = { p: [2 * r.n.p, 3 * r.n.p], s: [2 * r.n.s, 3 * r.n.s], c: [nc, 2 * nc] };
+    var mid = { p: 2.5 * r.n.p, s: 2.5 * r.n.s, c: 1.5 * nc };
+    r.mid = mid; r.midTotal = mid.p + mid.s + mid.c;
+    return r;
+  }
+
+  function rangeTxt(a) { return a[0] === a[1] ? String(a[0]) : a[0] + " to " + a[1]; }
+
+  function patterns(r) {
+    var out = [];
+    var low = r.scored.filter(function (m) { return m.score <= 5; });
+    var bySec = {};
+    low.forEach(function (m) { (bySec[m.sec] = bySec[m.sec] || []).push(m); });
+    movementSections(state.mode).forEach(function (s) {
+      var l = bySec[s.id] || [];
+      if (l.length >= 2) out.push(s.short + ": " + l.length + " of " + s.items.length + " movements are rated 5 or below (" + l.map(function (m) { return m.name; }).join(", ") + "). Look for one quality, strength, skill or mobility, behind several of them.");
+    });
+    var byName = {};
+    low.forEach(function (m) { var k = norm(m.name); (byName[k] = byName[k] || []).push(m); });
+    Object.keys(byName).forEach(function (k) {
+      var l = byName[k];
+      if (l.length >= 2) out.push(l[0].name + " is rated 5 or below in " + l.map(function (m) { return m.cat.toLowerCase(); }).join(" and ") + ". When it is low across loads or formats, it is usually a skill or strength gap rather than conditioning.");
+    });
+    return out;
+  }
+
+  function contextFlags(r) {
+    var mob = MOB.map(function (n) { return { n: n, v: parseScore(state.scores[keyOf("mob", n)]) }; }).filter(function (x) { return x.v !== null; });
+    var life = LIFE.map(function (n) { return { n: n, v: parseScore(state.scores[keyOf("life", n)]) }; }).filter(function (x) { return x.v !== null; });
+    var pain = mob.filter(function (x) { return x.v === 0; });
+    var mobLow = mob.filter(function (x) { return x.v >= 1 && x.v <= 5; });
+    var lifeLow = life.filter(function (x) { return x.v <= 5; });
+    var h = "";
+    var hasPriority = r.n.p + r.n.s > 0;
+    if (pain.length) h += '<li><b>Pain (scored 0): ' + pain.map(function (x) { return esc(x.n); }).join(", ") + '.</b> Seek the opinion of a qualified professional, such as a physiotherapist or doctor, before programming for these joints.</li>';
+    if (mobLow.length) h += '<li>Mobility rated 5 or below: <b>' + mobLow.map(function (x) { return esc(x.n) + " (" + x.v + ")"; }).join(", ") + '</b>. If these joints load the priority movements, work on mobility alongside.</li>';
+    else if (!pain.length && mob.length >= 8 && hasPriority) h += '<li>Mobility is scored 6 or higher everywhere, so for the priority movements look at strength or stability first.</li>';
+    if (lifeLow.length) h += '<li>Lifestyle rated 5 or below: <b>' + lifeLow.map(function (x) { return esc(x.n) + " (" + x.v + ")"; }).join(", ") + '</b>. Worth a conversation before adding more weekly work.</li>';
+    return h;
+  }
+
+  function dlHtml(pairs) {
+    var rows = pairs.filter(function (p) { return p[1] !== "" && p[1] !== undefined && p[1] !== null; });
+    if (!rows.length) return "";
+    return "<dl>" + rows.map(function (p) { return "<dt>" + esc(p[0]) + "</dt><dd>" + esc(p[1]) + "</dd>"; }).join("") + "</dl>";
+  }
+  function benchHtml() {
+    var Q = state.q;
+    var lv = function (id, v) { var l = metLevel(id, v); return l ? v + " · " + MET_LEVELS[l.i] : v; };
+    var bench = dlHtml([["500m row", lv("row500", Q.t500)], ["1000m row", lv("row1k", Q.t1000)], ["2km row", lv("row2k", Q.row2k)], ["5km row", lv("row5k", Q.row5k)], ["1km run", lv("run1k", Q.run1k)], ["5km run", lv("run5k", Q.run5k)], ["3km Airbike", lv("bike3k", Q.bike3k)], ["10km Airbike", lv("bike10k", Q.bike10k)]]);
+    return bench ? '<div class="card ctx prof"><h3>Metcon benchmarks</h3>' + bench + '</div>' : "";
+  }
+  function profileHtml() {
+    var P = state.profile, Q = state.q, md = state.mode === "rx" ? "Rx" : "Scaled";
+    var h = '<div class="card ctx prof"><h3>Athlete profile</h3>';
+    h += dlHtml([["Gender", P.gender], ["Height", P.height ? P.height + " cm" : ""], ["Weight", P.weight ? P.weight + " kg" : ""],
+      [md + " light barbell", loadText("light")], [md + " heavy barbell", loadText("heavy")], [md + " dumbbell", loadText("db")]]);
+    var pref = dlHtml([["Gymnastics volume", Q.gymReps], ["Gymnastics style", Q.gymStyle], ["Row format", Q.rowFormat], ["Row preference", Q.rowPref], ["Weightlifting", Q.liftPref]]);
+    if (pref) h += '<div class="sub-h">Would rather face</div>' + pref;
+    var bw = parseFloat(P.weight);
+    var lifts = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; });
+    if (lifts.length) {
+      h += '<div class="sub-h">1RMs</div><div class="lifts">' + lifts.map(function (l) {
+        var kg = Number(state.lifts[l]);
+        return '<div><span>' + esc(l) + '</span><b>' + kg + ' kg</b>' + (bw > 0 ? '<span>' + (kg / bw).toFixed(2) + '× bodyweight</span>' : "") + '</div>';
+      }).join("") + '</div>';
+    }
+    var cm = dlHtml([["Gymnastics", Q.gymNotes], ["Conditioning", Q.metNotes], ["Weightlifting", Q.liftNotes], ["Mobility", state.mobNotes]]);
+    if (cm) h += '<div class="sub-h">Comments</div>' + cm;
+    return h + '</div>';
+  }
+
+  var FOCUS = {
+    skill: { name: "Skill", cls: "p", text: "Most of the gap is in movements rated 3 or below. Practice them in small, high-quality sets before adding fatigue." },
+    str: { name: "Strength and mobility", cls: "s", text: "Most of the gap is in movements rated 4 or 5, with any mobility limiters adding to it. Build strength and range, and let a little fatigue show only in later rounds." },
+    cond: { name: "Conditioning", cls: "c", text: "The movements are there. Most of the gap is exposure at 6 or 7, so use them in regular workouts and bigger sets." }
+  };
+  function avgOf(sec, items) {
+    var v = items.map(function (n) { return parseScore(state.scores[keyOf(sec, n)]); }).filter(function (x) { return x !== null; });
+    if (!v.length) return null;
+    return v.reduce(function (a, b) { return a + b; }, 0) / v.length;
+  }
+  function focusOf(r) {
+    var mob = MOB.map(function (n) { return { n: n, v: parseScore(state.scores[keyOf("mob", n)]) }; }).filter(function (x) { return x.v !== null; });
+    var mobLow = mob.filter(function (x) { return x.v >= 1 && x.v <= 5; });
+    var pain = mob.filter(function (x) { return x.v === 0; });
+    var gap = function (m) { return Math.pow(8 - m.score, 2); };
+    var sum = function (list, fn) { return list.reduce(function (a, m) { return a + fn(m); }, 0); };
+    var f = {
+      skill: sum(r.p, gap),
+      str: sum(r.s, gap) + sum(mobLow, function (x) { return Math.pow(8 - x.v, 2); }),
+      cond: sum(r.c6.concat(r.c7), gap)
+    };
+    f.tot = f.skill + f.str + f.cond;
+    f.mobLow = mobLow;
+    f.pain = pain;
+    return f;
+  }
+  function namesWithScores(list) { return list.slice(0, 3).map(function (m) { return esc(m.name) + " (" + m.score + ")"; }).join(", "); }
+
+  var GYM_SUBS = [
+    ["Pulling and hanging", ["pull-up", "jumping pull up", "jumping chest-to-bar pull up", "chest-to-bar pull up", "bar muscle up", "ring muscle up", "toes-to-bar", "hanging knee raises"]],
+    ["Pushing and inverted", ["handstand push up", "strict handstand push up", "handstand walk", "ring dip", "push up"]],
+    ["Burpees, jumps and legs", ["burpee", "burpees", "burpee box jump overs", "burpees over the bar", "box jumps", "box step ups (unweighted)", "pistol squats"]]
+  ];
+  var MET_SUBS = [
+    ["Rowing, bike and running", ["rowing", "airbike", "running"]],
+    ["Skipping", ["single unders", "double unders", "crossovers"]]
+  ];
+  function listAvg(list) {
+    var v = list.filter(function (m) { return m.score !== null; }).map(function (m) { return m.score; });
+    return v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null;
+  }
+  function catRow(label, a, cls) {
+    if (a === null) return '<div class="cat-row ' + (cls || "") + '"><span class="nm">' + esc(label) + '</span><div class="track"></div><span class="v">–</span></div>';
+    return '<div class="cat-row ' + (cls || "") + '"><span class="nm">' + esc(label) + '</span><div class="track"><div class="fill ' + bandOf(Math.round(a)) + '" style="width:' + (a * 10).toFixed(0) + '%"></div></div><span class="v">' + a.toFixed(1) + '</span></div>';
+  }
+  function groupsHtml(r) {
+    var all = r.all;
+    function bySec(ids) { return all.filter(function (m) { return ids.indexOf(m.sec) >= 0; }); }
+    function splitBy(list, defs) {
+      var out = defs.map(function (d) { return { label: d[0], names: d[1], items: [] }; });
+      list.forEach(function (m) {
+        var hit = out.filter(function (o) { return o.names.indexOf(m.name.toLowerCase()) >= 0; })[0] || out[out.length - 1];
+        hit.items.push(m);
+      });
+      return out.map(function (o) { return [o.label, o.items]; });
+    }
+    var wlSubs = [["Light barbell", bySec(["light"])], ["Heavy barbell", bySec(["heavy"])], ["Dumbbell", bySec(["db"])], ["Wall balls", bySec(["wb"])]];
+    var groups = [
+      { title: "Weightlifting", list: bySec(WL), subs: wlSubs },
+      { title: "Gymnastics", list: bySec(["gym"]), subs: splitBy(bySec(["gym"]), GYM_SUBS) },
+      { title: "Metabolic conditioning", list: bySec(["met"]), subs: splitBy(bySec(["met"]), MET_SUBS) }
+    ];
+    var h = "";
+    groups.forEach(function (g) {
+      var n = g.list.filter(function (m) { return m.score !== null; }).length;
+      h += '<div class="grp-h"><span>' + g.title + '</span><span class="prog">' + n + "/" + g.list.length + ' scored</span></div>';
+      h += catRow("Overall", listAvg(g.list), "all");
+      g.subs.forEach(function (sub) { if (sub[1].length) h += catRow(sub[0], listAvg(sub[1]), "sub"); });
+      var lows = sorted(g.list.filter(function (m) { return m.score !== null && m.score <= 5; })).slice(0, 3);
+      if (lows.length) h += '<p class="fine grp-low">Lowest: ' + namesWithScores(lows) + '</p>';
+      if (g.title === "Weightlifting") { var rl = ratioLine(); if (rl) h += '<p class="fine grp-low">' + esc(rl) + '</p>'; }
+    });
+    h += '<div class="grp-h"><span>Mobility and lifestyle</span></div>';
+    h += catRow("Mobility", avgOf("mob", MOB), "sub") + catRow("Lifestyle", avgOf("life", LIFE), "sub");
+    return h;
+  }
+
+  function tier1Html(r) {
+    var f = focusOf(r), h = "";
+    if (f.pain.length) h += '<div class="alert"><b>Pain reported (scored 0): ' + f.pain.map(function (x) { return esc(x.n); }).join(", ") + '.</b> Seek the opinion of a qualified professional, such as a physiotherapist or doctor, before training these joints. Pain is left out of the focus split below.</div>';
+
+    h += '<div class="card t1"><h3>Where to focus</h3><p class="fine" style="margin-top:2px">Where the gap is. Lower scores count for more, so a few very low movements outweigh many mild ones.</p>';
+    if (!f.tot) {
+      h += '<p class="empty">' + (r.scored.length ? "Nothing is rated 7 or below. Normal classes are enough for now." : "Score a few movements to see where to focus.") + '</p>';
+    } else {
+      var order = ["skill", "str", "cond"].sort(function (a, b) { return f[b] - f[a]; });
+      var top = order[0], second = order[1];
+      var pct = function (k) { return Math.round(100 * f[k] / f.tot); };
+      h += '<div class="eyebrow" style="margin-top:8px">Priority</div><div class="focus-title">' + FOCUS[top].name + '</div>';
+      h += '<p class="focus-txt">' + FOCUS[top].text + '</p>';
+      var segs = ["skill", "str", "cond"].map(function (k) {
+        var share = f[k] / f.tot;
+        return share ? '<span class="' + FOCUS[k].cls + '" style="flex:' + share.toFixed(4) + ' 1 0">' + (share >= 0.1 ? pct(k) + "%" : "") + '</span>' : "";
+      }).join("");
+      h += '<div class="bar" role="img" aria-label="Focus split: skill ' + pct("skill") + ' percent, strength and mobility ' + pct("str") + ' percent, conditioning ' + pct("cond") + ' percent">' + segs + '</div>';
+      h += '<div class="split-legend">' + ["skill", "str", "cond"].map(function (k) {
+        return '<div><b>' + FOCUS[k].name + '</b><em>' + pct(k) + '%</em></div>';
+      }).join("") + '</div>';
+      var drivers = top === "skill" ? namesWithScores(r.p) : top === "str" ? namesWithScores(r.s) : namesWithScores(sorted(r.c6.concat(r.c7)));
+      var extra = "";
+      if (top === "str" && f.mobLow.length) extra = " Mobility: " + f.mobLow.slice(0, 4).map(function (x) { return esc(x.n) + " (" + x.v + ")"; }).join(", ") + ".";
+      if (drivers || extra) h += '<p class="fine">Biggest contributors: ' + (drivers || "none") + '.' + extra + '</p>';
+      if (f[second] > 0 && (f[top] - f[second]) / f.tot <= 0.08) h += '<p class="fine">' + FOCUS[second].name + ' is close behind.</p>';
+      h += '<p class="fine">A low score can come from skill, strength or mobility. Bigger gaps count for more. Treat this as a starting point and confirm with a coach.</p>';
+    }
+    h += '</div>';
+
+    /* ratings */
+    h += '<div class="card t1"><h3>Your ratings</h3><p class="fine" style="margin-top:4px">Number of movements in each band, and how often each one needs attention.</p>';
+    h += '<div class="tiles">' +
+      '<div class="tile band-p"><b>' + r.n.p + '</b><span>0 to 3 · Practice</span><small>2 to 3× per week each</small></div>' +
+      '<div class="tile band-s"><b>' + r.n.s + '</b><span>4 to 5 · Strengthen</span><small>2 to 3× per week each</small></div>' +
+      '<div class="tile band-c"><b>' + r.n.c + '</b><span>6 to 7 · Condition</span><small>1 to 2× per week each</small></div>' +
+      '<div class="tile band-k"><b>' + r.k.length + '</b><span>8 to 10 · Covered</span><small>Normal classes are enough</small></div></div>';
+    h += groupsHtml(r);
+    var low = sorted(r.scored).slice(0, 5);
+    if (low.length) h += '<div class="sub-h">Lowest five</div><ul class="mv">' + low.map(liHtml).join("") + '</ul>';
+    h += '</div>';
+    return h;
+  }
+
+  function lockHtml() {
+    return '<div class="card lock"><div class="lock-head">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
+      '<h3>Full weekly plan</h3><span class="badge">Paid</span></div>' +
+      '<ul><li>How the week splits across practice, strengthen and condition</li>' +
+      '<li>Every movement with how often to train it and how</li>' +
+      '<li>Patterns across movements, and what to check before programming</li>' +
+      '<li>Strength ratios across your lifts, with what to work on</li>' +
+      '<li>Athlete profile with 1RMs against bodyweight, preferences and benchmarks</li>' +
+      '<li>Plan text to copy and send</li></ul>' +
+      '<div class="plan-actions"><button type="button" class="btn primary" id="btn-unlock">Preview the full plan</button></div>' +
+      '<p class="fine">Payment is not connected yet. This opens the full plan so you can see what a paying athlete gets.</p></div>';
+  }
+
+  function renderPlan() {
+    var r = compute();
+    var h = "";
+    var title = state.name ? esc(state.name) : "Athlete";
+    h += '<div class="card plan-head"><h2>' + title + ' · ' + (state.mode === "rx" ? "Rx" : "Scaled") + ' results</h2>';
+    h += '<div class="sub">' + r.scored.length + " of " + r.all.length + " movements scored" + (r.all.length - r.scored.length ? ", " + (r.all.length - r.scored.length) + " still to score" : "") + '</div>';
+    if (state.goals.m6 || state.goals.m12 || state.goals.y3) {
+      h += '<div class="goals">' +
+        '<div><span>6 months</span>' + (esc(state.goals.m6) || "–") + '</div>' +
+        '<div><span>12 months</span>' + (esc(state.goals.m12) || "–") + '</div>' +
+        '<div><span>3 years</span>' + (esc(state.goals.y3) || "–") + '</div></div>';
+    }
+    h += '</div>';
+
+    var t2 = "";
+    /* relative frequency */
+    t2 += '<div class="card split"><h3>Where the week goes</h3><p class="fine" style="margin-top:2px">How the week\'s sessions are spread. This counts movements in each band and how often each one needs a turn, so it can differ from where the gap is in Where to focus.</p>';
+    if (r.midTotal === 0) {
+      t2 += '<p class="empty">Score a few movements to see the weekly split.</p>';
+    } else {
+      function seg(cls, key) {
+        var share = r.mid[key] / r.midTotal;
+        if (!share) return "";
+        return '<span class="' + cls + '" style="flex:' + share.toFixed(4) + ' 1 0" title="' + Math.round(share * 100) + '%">' + (share >= 0.1 ? Math.round(share * 100) + "%" : "") + '</span>';
+      }
+      t2 += '<div class="bar" role="img" aria-label="Share of weekly attention: practice ' + Math.round(100 * r.mid.p / r.midTotal) + ' percent, strengthen ' + Math.round(100 * r.mid.s / r.midTotal) + ' percent, condition ' + Math.round(100 * r.mid.c / r.midTotal) + ' percent">' + seg("p", "p") + seg("s", "s") + seg("c", "c") + '</div>';
+      t2 += '<div class="split-legend">' +
+        '<div><b>Practice</b>' + r.n.p + ' movement' + (r.n.p === 1 ? "" : "s") + '<br><em>' + rangeTxt(r.touch.p) + ' touches/week</em></div>' +
+        '<div><b>Strengthen</b>' + r.n.s + ' movement' + (r.n.s === 1 ? "" : "s") + '<br><em>' + rangeTxt(r.touch.s) + ' touches/week</em></div>' +
+        '<div><b>Condition</b>' + r.n.c + ' movement' + (r.n.c === 1 ? "" : "s") + '<br><em>' + rangeTxt(r.touch.c) + ' touches/week</em></div></div>';
+      var totMin = r.touch.p[0] + r.touch.s[0] + r.touch.c[0], totMax = r.touch.p[1] + r.touch.s[1] + r.touch.c[1];
+      t2 += '<p class="fine num">' + totMin + ' to ' + totMax + ' touches in total. A touch is one movement getting its turn, and one session can hold several complementary touches. The bar shows each lane\'s share at the middle of its range.</p>';
+      if (r.n.p + r.n.s > 6) t2 += '<p class="warn">' + (r.n.p + r.n.s) + ' movements need practice or strengthening 2 to 3× a week. Start with the lowest scores, or the ones that share a limiter (see below), and bring the rest in as those lift.</p>';
+    }
+    t2 += '</div>';
+
+    /* lanes */
+    t2 += '<section class="card lane lane-p"><div class="lane-top"><h3>Practice</h3><span class="freq">2 to 3× per week each</span><span class="cnt">Rated 0 to 3 · ' + r.n.p + '</span></div><p class="how">' + HOW.p + '</p>' + listHtml(r.p, "Nothing rated 3 or below.") + '</section>';
+    t2 += '<section class="card lane lane-s"><div class="lane-top"><h3>Strengthen</h3><span class="freq">2 to 3× per week each</span><span class="cnt">Rated 4 to 5 · ' + r.n.s + '</span></div><p class="how">' + HOW.s + '</p>' + listHtml(r.s, "Nothing rated 4 or 5.") + '</section>';
+    t2 += '<section class="card lane lane-c"><div class="lane-top"><h3>Condition</h3><span class="freq">1 to 2× per week each</span><span class="cnt">Rated 6 to 7 · ' + r.n.c + '</span></div><p class="how">' + HOW.c + '</p>' +
+      '<div class="sub-h">Rated 7</div>' + listHtml(r.c7, "Nothing rated 7.") +
+      '<div class="sub-h">Rated 6 · may need one extra conditioning day on top of classes</div>' + listHtml(r.c6, "Nothing rated 6.") + '</section>';
+
+    /* patterns */
+    t2 += ratiosHtml(r);
+    t2 += modalityHtml(r);
+
+    /* diagnose and context */
+    var flags = contextFlags(r);
+    t2 += '<div class="card ctx diag"><h3>Before programming a low score</h3><ul>' +
+      '<li>Has the strength and mobility: it is a <b>skill</b> issue.</li>' +
+      '<li>Has the skill and mobility: it is a <b>strength</b> issue.</li>' +
+      '<li>Has the strength, but good skill takes great effort: look at <b>mobility</b>.</li>' +
+      flags + '</ul></div>';
+
+    /* covered */
+    if (r.k.length) {
+      t2 += '<div class="card ctx covered"><b>Rated 8 or higher.</b> These movements don\'t need additional work and can be maintained through the usual variety of training.</div>';
+    }
+
+    t2 += profileHtml();
+    t2 += benchHtml();
+    t2 += '<div class="plan-actions"><button type="button" class="btn primary" id="btn-copy">Copy plan as text</button><span class="copied" id="copied" role="status"></span></div>';
+    h += tier1Html(r);
+    if (tier2Open) h += '<div class="card t2-head"><h2>Full plan</h2><span class="badge">Paid · preview</span><button type="button" class="btn" id="btn-lock">Lock again</button></div>' + t2;
+    else h += lockHtml();
+    $("panel-plan").innerHTML = h;
+    var ub = $("btn-unlock"); if (ub) ub.addEventListener("click", function () { tier2Open = true; renderPlan(); });
+    var lb = $("btn-lock"); if (lb) lb.addEventListener("click", function () { tier2Open = false; renderPlan(); });
+    var cb = $("btn-copy");
+    if (cb) cb.addEventListener("click", function () { copyPlan(r); });
+  }
+
+  function planText(r) {
+    function line(label, freq, list) {
+      return label + " (" + freq + "): " + (list.length ? list.map(function (m) { return m.name + " " + m.score; }).join(", ") : "none");
+    }
+    var t = (state.name || "Athlete") + " · " + (state.mode === "rx" ? "Rx" : "Scaled") + " weekly plan\n";
+    if (state.goals.m6) t += "6-month goal: " + state.goals.m6 + "\n";
+    if (state.goals.m12) t += "12-month goal: " + state.goals.m12 + "\n";
+    if (state.goals.y3) t += "3-year goal: " + state.goals.y3 + "\n";
+    t += "\n" + line("PRACTICE", "2-3x/week each", r.p) + "\n";
+    t += line("STRENGTHEN", "2-3x/week each", r.s) + "\n";
+    t += line("CONDITION, rated 7", "1-2x/week each", r.c7) + "\n";
+    t += line("CONDITION, rated 6", "1-2x/week each", r.c6) + "\n";
+    if (r.k.length) t += "RATED 8 OR HIGHER: no additional work needed, maintain through the usual variety of training.\n";
+    var pn = MOB.filter(function (n) { return parseScore(state.scores[keyOf("mob", n)]) === 0; });
+    if (pn.length) t += "\nPAIN (mobility scored 0): " + pn.join(", ") + ". Seek the opinion of a qualified professional, such as a physiotherapist or doctor, before training these joints.\n";
+    var P = state.profile, Q = state.q;
+    var bits = [P.gender, P.height ? P.height + " cm" : "", P.weight ? P.weight + " kg" : ""].filter(Boolean);
+    if (bits.length) t += "\nProfile: " + bits.join(", ") + "\n";
+    t += "Reference loads: light " + loadText("light") + "; heavy " + loadText("heavy") + "; dumbbell " + loadText("db") + "\n";
+    var lf = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; }).map(function (l) { return l + " " + state.lifts[l]; });
+    if (lf.length) t += "1RMs (kg): " + lf.join(", ") + "\n";
+    var bl = ["Deadlift", "Snatch", "Clean"].map(function (l) { var b = baseInfo(l); return b ? l + " " + b.kg + " kg" + (b.mult !== null ? " (" + b.mult.toFixed(2) + "x bodyweight" + (l === "Deadlift" ? ", " + b.chip : "") + ")" : "") : ""; }).filter(Boolean);
+    if (bl.length) t += "Baseline lifts: " + bl.join("; ") + "\n";
+    var rr = ratioRows();
+    if (rr.length) {
+      t += "Strength ratios:\n" + rr.map(function (x) {
+        return "- " + x.R.lift + " (against " + x.R.of + "): " + (x.st === "in" ? "in range" : x.st === "below" ? "below range, goal: add " + x.need + " kg" : "above range by about " + x.over + " kg");
+      }).join("\n") + "\n";
+    }
+    [["WEIGHTLIFTING SUMMARY", wlThemes(r)], ["GYMNASTICS SUMMARY", gymThemes(r)], ["METABOLIC CONDITIONING SUMMARY", metThemes(r)]].forEach(function (g) {
+      if (g[1].length) t += "\n" + g[0] + ":\n" + g[1].map(function (x) { return "- " + x.head + ": " + x.text; }).join("\n") + "\n";
+    });
+    var lvT = function (id, v) { var l = metLevel(id, v); return l ? v + " (" + MET_LEVELS[l.i] + ")" : v; };
+    var bm = [["500m row", lvT("row500", Q.t500)], ["1000m row", lvT("row1k", Q.t1000)], ["2km row", lvT("row2k", Q.row2k)], ["5km row", lvT("row5k", Q.row5k)], ["1km run", lvT("run1k", Q.run1k)], ["5km run", lvT("run5k", Q.run5k)], ["3km Airbike", lvT("bike3k", Q.bike3k)], ["10km Airbike", lvT("bike10k", Q.bike10k)]].filter(function (p) { return p[1]; });
+    if (bm.length) t += "\nMETCON BENCHMARKS:\n" + bm.map(function (p) { return "- " + p[0] + ": " + p[1]; }).join("\n") + "\n\n";
+    [["Gymnastics volume", Q.gymReps], ["Gymnastics style", Q.gymStyle], ["Row format", Q.rowFormat], ["Row preference", Q.rowPref], ["Weightlifting preference", Q.liftPref],
+     ["Gymnastics comments", Q.gymNotes], ["Conditioning comments", Q.metNotes], ["Weightlifting comments", Q.liftNotes], ["Mobility comments", state.mobNotes]
+    ].forEach(function (p) { if (p[1]) t += p[0] + ": " + p[1] + "\n"; });
+    return t;
+  }
+  function copyPlan(r) {
+    var text = planText(r), msg = $("copied");
+    function done(ok) { msg.textContent = ok ? "Copied" : "Copy blocked here. Select the plan and copy it manually."; setTimeout(function () { msg.textContent = ""; }, 2500); }
+    try {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    } catch (e) { done(false); }
+  }
+
+  /* ---------- wiring ---------- */
+  function setMode(m) {
+    state.mode = m;
+    $("mode-rx").setAttribute("aria-pressed", m === "rx");
+    $("mode-scaled").setAttribute("aria-pressed", m === "scaled");
+    var openIds = {};
+    document.querySelectorAll("details.card[data-sec]").forEach(function (d) { openIds[d.getAttribute("data-sec")] = d.open; });
+    renderScores();
+    document.querySelectorAll("details.card[data-sec]").forEach(function (d) { var k = d.getAttribute("data-sec"); if (k in openIds) d.open = openIds[k]; });
+    renderPlan(); save();
+  }
+  function setView(v) {
+    view = v;
+    document.body.setAttribute("data-view", v);
+    $("tab-scores").setAttribute("aria-pressed", v === "scores");
+    $("tab-plan").setAttribute("aria-pressed", v === "plan");
+    if (v === "plan") window.scrollTo(0, 0);
+  }
+  function hideBanner() { if (state.example) { state.example = false; $("banner").hidden = true; } }
+
+  $("mode-rx").addEventListener("click", function () { setMode("rx"); });
+  $("mode-scaled").addEventListener("click", function () { setMode("scaled"); });
+  $("tab-scores").addEventListener("click", function () { setView("scores"); });
+  $("tab-plan").addEventListener("click", function () { setView("plan"); });
+  $("btn-clear").addEventListener("click", function () {
+    var m = state.mode;
+    state = freshState(); state.mode = m;
+    $("banner").hidden = true;
+    renderScores(); renderPlan(); save();
+  });
+
+  function onEdit(e) {
+    var t = e.target;
+    if (!t || !t.classList) return;
+    if (t.classList.contains("sc")) {
+      if (e.type === "change") { var cv = parseScore(t.value); t.value = cv === null ? "" : cv; return; }
+      var k = t.getAttribute("data-k");
+      var v = parseScore(t.value);
+      if (v === null) delete state.scores[k]; else state.scores[k] = v;
+      t.className = "sc num band-" + bandOf(v);
+      hideBanner(); updateProgress(); renderPlan(); save();
+    } else if (t.hasAttribute("data-rk")) {
+      var rk = t.getAttribute("data-rk"), n = parseInt(t.value, 10);
+      if (isNaN(n) || n < 0) delete state.reps[rk]; else state.reps[rk] = n;
+      hideBanner(); renderPlan(); save();
+    } else if (t.hasAttribute("data-lift")) {
+      var ln = t.getAttribute("data-lift"), kg = parseFloat(t.value);
+      if (isNaN(kg) || kg <= 0) delete state.lifts[ln]; else state.lifts[ln] = kg;
+      hideBanner(); updateProgress(); renderPlan(); save();
+    } else if (t.hasAttribute("data-bind")) {
+      if (t.type === "radio" && !t.checked) return;
+      var path = t.getAttribute("data-bind");
+      setPath(state, path, t.value);
+      if (path === "profile.gender") updateLoadNotes();
+      hideBanner(); updateProgress(); renderPlan(); save();
+    }
+  }
+  $("panel-scores").addEventListener("input", onEdit);
+  $("panel-scores").addEventListener("change", onEdit);
+
+  /* ---------- boot ---------- */
+  $("banner").hidden = !state.example;
+  document.body.setAttribute("data-view", view);
+  setMode(state.mode === "scaled" ? "scaled" : "rx");
+})();
+</script>
+
+</body>
+</html>
