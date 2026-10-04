@@ -297,7 +297,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   #print-doc .lane .sub-h { margin: 6px 0 2px; }
   #print-doc ul.mv li { gap: 6px; font-size: .8rem; }
   #print-doc ul.mv .cat { display: none; }
-  #print-doc .rgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+  #print-doc .rgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
   #print-doc .rtile { background: var(--surface-2); border-radius: 7px; padding: 4px 7px; font-size: .78rem; min-width: 0; display: flex; flex-direction: column; gap: 1px; align-items: flex-start; }
   #print-doc .pr-ratios .sub-h { margin: 6px 0 1px; }
   #print-doc .pr-ratios .fine { margin-top: 4px; }
@@ -1447,30 +1447,33 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 
   /* ---------- print document (PDF) ---------- */
   function ratiosPrintHtml() {
-    var rows = ratioRows(), done = {};
-    var chains = [["pull", "Deadlift", "Deadlift"], ["snatch", "Snatch variations", "Snatch"], ["clean", "Clean variations", "Clean"], ["jerk", "Jerk and press chain", ""]];
+    var rows = ratioRows(), T = {};
     var h = '<div class="card ctx ratios pr-ratios"><h3>Strength ratios and 1RMs</h3>';
-    var any = rows.length || chains.some(function (ch) { return Number(state.lifts[ch[2]]) > 0; });
-    if (!any) return h + '<p class="empty">No 1RMs entered.</p></div>';
     var bw = parseFloat(state.profile.weight);
     function tile(lift, kg, chip, cls, note) {
-      done[lift] = true;
       return '<div class="rtile"><span class="rn">' + esc(lift) + '</span><b>' + kg + ' kg</b><span class="chip ' + cls + '">' + chip + '</span><span class="rx">' + note + '</span></div>';
     }
-    chains.forEach(function (ch) {
-      var list = rows.filter(function (x) { return x.R.chain === ch[0]; });
-      var b = ch[2] ? baseInfo(ch[2]) : null, t = "";
-      if (b && !done[ch[2]]) t += tile(ch[2], b.kg, b.chip, "band-k", esc(b.note));
-      list.forEach(function (x) {
-        var cls = x.st === "in" ? "band-c" : x.st === "below" ? "band-s" : "band-k";
-        var lbl = x.st === "in" ? "In range" : x.st === "below" ? "Below range" : "Above range";
-        var note = x.st === "in" ? "Compared with " + esc(x.R.of) + ". Aim to increase as your strength numbers improve." : x.st === "below" ? "Compared with " + esc(x.R.of) + ". Goal: add " + x.need + " kg." : "Compared with " + esc(x.R.of) + ". About " + x.over + " kg above range.";
-        t += tile(x.R.lift, x.c, lbl, cls, note);
-      });
-      if (t) h += '<div class="sub-h">' + ch[1] + '</div><div class="rgrid">' + t + '</div>';
+    ["Deadlift", "Snatch", "Clean"].forEach(function (l) {
+      var b = baseInfo(l);
+      if (b) T[l] = tile(l, b.kg, b.chip, "band-k", esc(b.note));
     });
-    var other = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0 && !done[l]; });
+    rows.forEach(function (x) {
+      var cls = x.st === "in" ? "band-c" : x.st === "below" ? "band-s" : "band-k";
+      var lbl = x.st === "in" ? "In range" : x.st === "below" ? "Below range" : "Above range";
+      var note = "Compared with " + esc(x.R.of) + ". " + (x.st === "in" ? "Aim to increase as your strength numbers improve." : x.st === "below" ? "Goal: add " + x.need + " kg." : "About " + x.over + " kg above range.");
+      var b = (x.R.lift === "Snatch" || x.R.lift === "Clean") ? baseInfo(x.R.lift) : null;
+      if (b && b.chip !== "Baseline") note += " Level: " + b.chip + " (" + esc(b.note) + ")";
+      T[x.R.lift] = tile(x.R.lift, x.c, lbl, cls, note);
+    });
+    var layout = [["Deadlift", "Back Squat", "Front Squat", "Overhead Squat"], ["Snatch", "Power Snatch", "Hang Snatch"], ["Clean", "Power Clean", "Hang Clean"], ["Split Jerk", "Push Jerk", "Push Press", "Strict Press"]], used = {};
+    layout.forEach(function (row) {
+      var t = row.filter(function (l) { return T[l]; });
+      t.forEach(function (l) { used[l] = true; });
+      if (t.length) h += '<div class="rgrid" style="grid-template-columns:repeat(' + row.length + ',minmax(0,1fr))">' + t.map(function (l) { return T[l]; }).join("") + '</div>';
+    });
+    var other = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0 && !used[l]; });
     if (other.length) h += '<div class="sub-h">Other 1RMs</div><div class="rgrid">' + other.map(function (l) { return '<div class="rtile"><span class="rn">' + esc(l) + '</span><b>' + Number(state.lifts[l]) + ' kg</b>' + (bw > 0 ? '<span class="rx">' + (Number(state.lifts[l]) / bw).toFixed(2) + '× bodyweight</span>' : "") + '</div>'; }).join("") + '</div>';
+    if (!h.match(/rtile/)) return h + '<p class="empty">No 1RMs entered.</p></div>';
     h += '<p class="fine">Where a target is a single figure, 3 percentage points either side count as in range. Suggested numbers are guides for a coach to confirm.</p></div>';
     return h;
   }
