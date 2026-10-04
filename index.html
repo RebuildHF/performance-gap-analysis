@@ -1094,8 +1094,14 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   function profileHtml() {
     var P = state.profile, Q = state.q, md = state.mode === "rx" ? "Rx" : "Scaled";
     var h = '<div class="card ctx prof"><h3>Athlete profile</h3>';
-    h += dlHtml([["Gender", P.gender], ["Height", P.height ? P.height + " cm" : ""], ["Weight", P.weight ? P.weight + " kg" : ""],
+    h += dlHtml([["Name", state.name], ["Gender", P.gender], ["Height", P.height ? P.height + " cm" : ""], ["Weight", P.weight ? P.weight + " kg" : ""],
       ["Version", md]]);
+    if (state.goals.m6 || state.goals.m12 || state.goals.y3) {
+      h += '<div class="sub-h">Goals</div><div class="goals">' +
+        '<div><span>6 months</span>' + (esc(state.goals.m6) || "–") + '</div>' +
+        '<div><span>12 months</span>' + (esc(state.goals.m12) || "–") + '</div>' +
+        '<div><span>3 years</span>' + (esc(state.goals.y3) || "–") + '</div></div>';
+    }
     var pref = dlHtml([["Gymnastics volume", Q.gymReps], ["Gymnastics style", Q.gymStyle], ["Row format", Q.rowFormat], ["Row preference", Q.rowPref], ["Weightlifting", Q.liftPref]]);
     if (pref) h += '<div class="sub-h">Would rather face</div>' + pref;
     var bw = parseFloat(P.weight);
@@ -1337,12 +1343,6 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     var title = state.name ? esc(state.name) : "Athlete";
     h += '<div class="card plan-head"><h2>' + title + ' · ' + (state.mode === "rx" ? "Rx" : "Scaled") + ' results</h2>';
     h += '<div class="sub">' + r.scored.length + " of " + r.all.length + " movements scored" + (r.all.length - r.scored.length ? ", " + (r.all.length - r.scored.length) + " still to score" : "") + '</div>';
-    if (state.goals.m6 || state.goals.m12 || state.goals.y3) {
-      h += '<div class="goals">' +
-        '<div><span>6 months</span>' + (esc(state.goals.m6) || "–") + '</div>' +
-        '<div><span>12 months</span>' + (esc(state.goals.m12) || "–") + '</div>' +
-        '<div><span>3 years</span>' + (esc(state.goals.y3) || "–") + '</div></div>';
-    }
     h += '</div>';
 
     var t2 = "";
