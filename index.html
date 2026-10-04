@@ -82,6 +82,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .legend div { border-radius: 7px; padding: 7px 9px; font-size: .8rem; line-height: 1.25; }
 .legend b { display: block; font-family: var(--font-display); font-size: 1rem; letter-spacing: .04em; text-transform: uppercase; }
+.key-top { margin-bottom: 6px; }
+.key-note { margin: 0 0 14px; }
 .legend .p, .band-p { background: var(--p-bg); color: var(--p-fg); }
 .legend .s, .band-s { background: var(--s-bg); color: var(--s-fg); }
 .legend .c, .band-c { background: var(--c-bg); color: var(--c-fg); }
@@ -270,7 +272,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 }
 @media print {
   body { background: #fff !important; }
-  .tabs, .banner, .panel-scores, .seg, .plan-actions, .t2-head button, .saved, #btn-signout, .auth-card { display: none !important; }
+  .tabs, .banner, .legend, .key-note, .panel-scores, .seg, .plan-actions, .t2-head button, .saved, #btn-signout, .auth-card { display: none !important; }
   .top > div:first-child p { display: none; }
   .app { display: block !important; }
   .panel-plan { display: block !important; position: static !important; max-height: none !important; overflow: visible !important; }
@@ -286,7 +288,8 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   <header class="top">
     <div>
       <h1>Performance Gap Analysis</h1>
-      <p>This survey is of your subjective reflection how you feel about your performance of general hybrid and functional training movements, to get a snap shot of where your personal gaps may lay to improve your overall performance.</p>
+      <p>This survey is your subjective reflection of how you feel about your performance of general hybrid and functional training movements, to get a snapshot of where your personal gaps may lie to improve your overall performance.</p>
+      <p><b>The output is only as accurate as your inputs.</b> For it to be useful you need to be honest, particularly with your pain and mobility ratings. Use the rating guides in each section to help with your self-reflection.</p>
       <p class="hint">Score each movement from 0 to 10.</p>
     </div>
     <div class="seg" role="group" aria-label="Version">
@@ -294,6 +297,14 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       <button type="button" id="mode-scaled" aria-pressed="false">Scaled</button>
     </div>
   </header>
+
+  <div class="legend key-top" aria-label="What each score means">
+    <div class="p"><b>0 to 3</b>Practice<br>2 to 3× per week each</div>
+    <div class="s"><b>4 to 5</b>Train<br>2 to 3× per week each</div>
+    <div class="c"><b>6 to 7</b>Condition<br>1 to 2× per week each</div>
+    <div class="k"><b>8 to 10</b>Covered<br>Normal classes are enough</div>
+  </div>
+  <p class="fine key-note">Rate each movement against these bands. The lower the score, the more attention it needs.</p>
 
   <div class="tabs"><div class="seg" role="group" aria-label="View">
     <button type="button" id="tab-scores" aria-pressed="true">Scores</button>
