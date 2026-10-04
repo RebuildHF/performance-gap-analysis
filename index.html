@@ -925,7 +925,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   /* ---------- plan ---------- */
   var HOW = {
     p: "Small sets, aiming for quality rather than reps or time. Control the environment and keep fatigue out. Start with holds in the end positions, or reduce range and load, if needed. One movement at a time, no supersets. If another movement shares the day, choose opposing muscle groups or upper against lower body.",
-    s: "Small sets and EMOMs with a little compounding fatigue that only shows in later rounds. Quality holds throughout. Pair a cardio element with a gymnastics or weightlifting element so breathing gets hard without pushing to muscular failure.",
+    s: "Strength or skill training with a focus on quality. Work in small sets and add load or difficulty only while quality holds. Keep fatigue low enough that quality holds throughout.",
     c: "Use these in regular WODs and in bigger EMOM sets. Keep load or reps manageable (bands, fewer reps) so the workout stimulus is met without overreaching. This is the more open training environment."
   };
 
@@ -1168,7 +1168,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     h += '<div class="card t1"><h3>Your ratings</h3><p class="fine" style="margin-top:4px">Number of movements in each band, and how often each one needs attention.</p>';
     h += '<div class="tiles">' +
       '<div class="tile band-p"><b>' + r.n.p + '</b><span>0 to 3 · Practice</span><small>2 to 3× per week each</small></div>' +
-      '<div class="tile band-s"><b>' + r.n.s + '</b><span>4 to 5 · Strengthen</span><small>2 to 3× per week each</small></div>' +
+      '<div class="tile band-s"><b>' + r.n.s + '</b><span>4 to 5 · Train</span><small>2 to 3× per week each</small></div>' +
       '<div class="tile band-c"><b>' + r.n.c + '</b><span>6 to 7 · Condition</span><small>1 to 2× per week each</small></div>' +
       '<div class="tile band-k"><b>' + r.k.length + '</b><span>8 to 10 · Covered</span><small>Normal classes are enough</small></div></div>';
     h += groupsHtml(r);
@@ -1189,7 +1189,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     return '<div class="card lock"><div class="lock-head">' +
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
       '<h3>Full weekly plan</h3><span class="badge">Paid</span></div>' +
-      '<ul><li>How the week splits across practice, strengthen and condition</li>' +
+      '<ul><li>How the week splits across practice, train and condition</li>' +
       '<li>Every movement with how often to train it and how</li>' +
       '<li>Summaries for weightlifting, gymnastics and metabolic conditioning</li>' +
       '<li>1RMs and strength ratios, with what to work on</li>' +
@@ -1302,23 +1302,23 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
         if (!share) return "";
         return '<span class="' + cls + '" style="flex:' + share.toFixed(4) + ' 1 0" title="' + Math.round(share * 100) + '%">' + (share >= 0.1 ? Math.round(share * 100) + "%" : "") + '</span>';
       }
-      t2 += '<div class="bar" role="img" aria-label="Share of weekly attention: practice ' + Math.round(100 * r.mid.p / r.midTotal) + ' percent, strengthen ' + Math.round(100 * r.mid.s / r.midTotal) + ' percent, condition ' + Math.round(100 * r.mid.c / r.midTotal) + ' percent">' + seg("p", "p") + seg("s", "s") + seg("c", "c") + '</div>';
+      t2 += '<div class="bar" role="img" aria-label="Share of weekly attention: practice ' + Math.round(100 * r.mid.p / r.midTotal) + ' percent, train ' + Math.round(100 * r.mid.s / r.midTotal) + ' percent, condition ' + Math.round(100 * r.mid.c / r.midTotal) + ' percent">' + seg("p", "p") + seg("s", "s") + seg("c", "c") + '</div>';
       t2 += '<div class="split-legend">' +
         '<div><b>Practice</b>' + r.n.p + ' movement' + (r.n.p === 1 ? "" : "s") + '<br><em>' + rangeTxt(r.touch.p) + ' touches/week</em></div>' +
-        '<div><b>Strengthen</b>' + r.n.s + ' movement' + (r.n.s === 1 ? "" : "s") + '<br><em>' + rangeTxt(r.touch.s) + ' touches/week</em></div>' +
+        '<div><b>Train</b>' + r.n.s + ' movement' + (r.n.s === 1 ? "" : "s") + '<br><em>' + rangeTxt(r.touch.s) + ' touches/week</em></div>' +
         '<div><b>Condition</b>' + r.n.c + ' movement' + (r.n.c === 1 ? "" : "s") + '<br><em>' + rangeTxt(r.touch.c) + ' touches/week</em></div></div>';
       var totMin = r.touch.p[0] + r.touch.s[0] + r.touch.c[0], totMax = r.touch.p[1] + r.touch.s[1] + r.touch.c[1];
       t2 += '<p class="fine num">' + totMin + ' to ' + totMax + ' touches in total. A touch is one movement getting its turn, and one session can hold several complementary touches. The bar shows each lane\'s share at the middle of its range.</p>';
-      if (r.n.p + r.n.s > 6) t2 += '<p class="warn">' + (r.n.p + r.n.s) + ' movements need practice or strengthening 2 to 3× a week. Start with the lowest scores, or the ones that share a limiter (see below), and bring the rest in as those lift.</p>';
+      if (r.n.p + r.n.s > 6) t2 += '<p class="warn">' + (r.n.p + r.n.s) + ' movements need practice or training 2 to 3× a week. Start with the lowest scores, or the ones that share a limiter (see below), and bring the rest in as those lift.</p>';
     }
     t2 += '</div>';
 
     /* lanes */
     t2 += '<section class="card lane lane-p"><div class="lane-top"><h3>Practice</h3><span class="freq">2 to 3× per week each</span><span class="cnt">Rated 0 to 3 · ' + r.n.p + '</span></div><p class="how">' + HOW.p + '</p>' + listHtml(r.p, "Nothing rated 3 or below.") + '</section>';
-    t2 += '<section class="card lane lane-s"><div class="lane-top"><h3>Strengthen</h3><span class="freq">2 to 3× per week each</span><span class="cnt">Rated 4 to 5 · ' + r.n.s + '</span></div><p class="how">' + HOW.s + '</p>' + listHtml(r.s, "Nothing rated 4 or 5.") + '</section>';
+    t2 += '<section class="card lane lane-s"><div class="lane-top"><h3>Train</h3><span class="freq">2 to 3× per week each</span><span class="cnt">Rated 4 to 5 · ' + r.n.s + '</span></div><p class="how">' + HOW.s + '</p>' + listHtml(r.s, "Nothing rated 4 or 5.") + '</section>';
     t2 += '<section class="card lane lane-c"><div class="lane-top"><h3>Condition</h3><span class="freq">1 to 2× per week each</span><span class="cnt">Rated 6 to 7 · ' + r.n.c + '</span></div><p class="how">' + HOW.c + '</p>' +
       '<div class="sub-h">Rated 7</div>' + listHtml(r.c7, "Nothing rated 7.") +
-      '<div class="sub-h">Rated 6 · may need one extra conditioning day on top of classes</div>' + listHtml(r.c6, "Nothing rated 6.") + '</section>';
+      '<div class="sub-h">Rated 6 · may need one extra conditioning day on top of classes</div><p class="how">Pair a cardio element with a gymnastics or weightlifting element so breathing gets hard without pushing to muscular failure.</p>' + listHtml(r.c6, "Nothing rated 6.") + '</section>';
 
     /* patterns */
     t2 += ratiosHtml(r);
@@ -1358,7 +1358,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     if (state.goals.m12) t += "12-month goal: " + state.goals.m12 + "\n";
     if (state.goals.y3) t += "3-year goal: " + state.goals.y3 + "\n";
     t += "\n" + line("PRACTICE", "2-3x/week each", r.p) + "\n";
-    t += line("STRENGTHEN", "2-3x/week each", r.s) + "\n";
+    t += line("TRAIN", "2-3x/week each", r.s) + "\n";
     t += line("CONDITION, rated 7", "1-2x/week each", r.c7) + "\n";
     t += line("CONDITION, rated 6", "1-2x/week each", r.c6) + "\n";
     if (r.k.length) t += "RATED 8 OR HIGHER: no additional work needed, maintain through the usual variety of training.\n";

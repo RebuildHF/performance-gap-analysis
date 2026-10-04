@@ -1,6 +1,6 @@
 # Performance Gap Analysis
 
-A single-file web app (`index.html`, no build step) that turns subjective 0 to 10 movement ratings into a weekly breakdown of priorities (practice, strengthen, condition) and how often each needs a turn.
+A single-file web app (`index.html`, no build step) that turns subjective 0 to 10 movement ratings into a weekly breakdown of priorities (practice, train, condition) and how often each needs a turn.
 
 Currently covers the Rx and Scaled mixed-modal versions. A weightlifting version is planned.
 
