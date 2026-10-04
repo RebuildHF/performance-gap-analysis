@@ -585,14 +585,15 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 
   var ABOVE = { "Push Press|Push Jerk": "Push Press is higher than Push Jerk. It may be a rhythm and/or positioning issue in the jerk." };
   function devOf(x) { return x.st === "below" ? x.lo - x.pr : x.pr - x.hi; }
-  function mobHits(words) {
+  function mobHits(words, max) {
+    max = max || 5;
     var hits = [], pain = false;
     MOB.forEach(function (n) {
       if (!words.some(function (w) { return n.indexOf(w) >= 0; })) return;
       var v = parseScore(state.scores[keyOf("mob", n)]);
       if (v === null) return;
       if (v === 0) { pain = true; hits.push(n + " (pain)"); }
-      else if (v <= 5) hits.push(n + " (" + v + ")");
+      else if (v <= max) hits.push(n + " (" + v + ")");
     });
     return { hits: hits, pain: pain };
   }
@@ -941,15 +942,15 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   /* Troubleshooting by movement. match is a lowercase word in the movement name; joints are words in the mobility joint names.
      Add more entries as the coaching notes are written. */
   var TROUBLE = [
-    { match: "pistol", joints: ["Hip", "Knee", "Ankle"], area: "hip and lower limb" }
+    { match: "pistol", joints: ["Hip", "Knee", "Ankle"], area: "hip, knee and ankle", max: 7 }
   ];
   function troubleHtml(m) {
     var nm = m.name.toLowerCase(), out = "";
     TROUBLE.forEach(function (t) {
       if (nm.indexOf(t.match) < 0) return;
-      var h = mobHits(t.joints);
+      var h = mobHits(t.joints, t.max);
       if (!h.hits.length) return;
-      out += '<div class="ts"><b>Check ' + esc(t.area) + ' mobility:</b> ' + esc(h.hits.join(", ")) + '.' + (h.pain ? ' Seek a qualified professional opinion for the pain.' : ' This may be limiting the movement, so work on range alongside practice.') + '</div>';
+      out += '<div class="ts"><b>Check ' + esc(t.area) + ' mobility:</b> ' + esc(h.hits.join(", ")) + '.' + (t.max ? ' Joints rated ' + t.max + ' or below are listed.' : '') + (h.pain ? ' Seek a qualified professional opinion for the pain.' : ' This may be limiting the movement, so work on range alongside practice.') + '</div>';
     });
     return out;
   }
