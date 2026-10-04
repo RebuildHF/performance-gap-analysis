@@ -6,7 +6,7 @@ Currently covers the Rx and Scaled mixed-modal versions. A weightlifting version
 
 ## Tiers
 - **Tier 1 (free, no login):** summary of the ratings, a basic focus indicator (skill, strength and mobility, conditioning) and the score key.
-- **Tier 2 (login plus unlock):** full weekly plan, 1RMs and strength ratios, weightlifting / gymnastics / metabolic conditioning summaries, metcon benchmark levels, and saved assessments. 1RM entry only appears once Tier 2 is unlocked.
+- **Tier 2, "In Depth Breakdown" (login required; free during the trial, see `TRIAL_OPEN` in `index.html`):** full weekly plan, 1RMs and strength ratios, weightlifting / gymnastics / metabolic conditioning summaries, metcon benchmark levels, and saved assessments. 1RM entry only appears once the In Depth Breakdown is unlocked. While `TRIAL_OPEN` is true, any signed-in account is unlocked; set it to false to require the `entitlements` flag again.
 
 ## Run it
 Open `index.html` in a browser (or host the file on any static host). Drafts are also kept in the browser's localStorage.
