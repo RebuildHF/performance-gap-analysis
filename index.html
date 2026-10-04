@@ -612,6 +612,15 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     "Clean": LOW.concat(["Upper Back", "Wrist", "Shoulder"]), "Power Clean": LOW.concat(["Upper Back", "Wrist", "Shoulder"]), "Hang Clean": LOW.concat(["Upper Back", "Wrist", "Shoulder"]),
     "Deadlift": ["Hip", "Lower Back", "Knee"]
   };
+  /* Variation above range against its parent lift: also reflects the squat that supports the catch, and mobility. */
+  var CATCH_SQUAT = { "Power Clean|Clean": "Front Squat", "Hang Clean|Clean": "Front Squat", "Power Snatch|Snatch": "Overhead Squat", "Hang Snatch|Snatch": "Overhead Squat" };
+  function aboveText(x) {
+    var key = x.R.lift + "|" + x.R.of, base = ABOVE[key] || (x.R.lift + " is above range by about " + x.over + " kg, so " + x.R.of + " may be the limiter.");
+    var q = CATCH_SQUAT[key];
+    if (!q) return base;
+    var kg = Number(state.lifts[q]);
+    return base + " This also reflects " + q + " and mobility: can you receive the bar in a low position, and is your " + q + " strong enough to lift the same as your " + x.R.lift + "?" + (kg > 0 ? " Your " + q + " is " + kg + " kg against your " + x.R.lift + " of " + x.c + " kg." : "");
+  }
   function wlThemes(r) {
     var out = [], sq = squatTheme(r);
     if (sq.on) out.push({ head: "Squatting", text: sq.text + mobFlag(["Hip", "Knee", "Ankle", "Lower Back", "Upper Back"].concat(sq.emphasis === "Overhead Squat" ? ["Shoulder", "Elbow", "Wrist"] : [])) });
@@ -659,7 +668,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
         head: x.R.lift + " against " + x.R.of,
         text: x.st === "below"
           ? (ADVICE[x.R.lift + "|" + x.R.of] || "") + " Goal: add " + x.need + " kg." + mobFlag(LIFT_JOINTS[x.R.lift] || [])
-          : (ABOVE[x.R.lift + "|" + x.R.of] || (x.R.lift + " is above range by about " + x.over + " kg, so " + x.R.of + " may be the limiter.")) + mobFlag(LIFT_JOINTS[x.R.of] || [])
+          : aboveText(x) + mobFlag(LIFT_JOINTS[x.R.of] || [])
       });
     });
     var byName = {};
