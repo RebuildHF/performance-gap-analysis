@@ -1152,7 +1152,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 
   var FOCUS = {
     skill: { name: "Skill", cls: "p", text: "Most of the gap is in movements rated 3 or below. Practice them in small, high-quality sets before adding fatigue." },
-    str: { name: "Strength and mobility", cls: "s", text: "Most of the gap is in movements rated 4 or 5, with any mobility limiters adding to it. Build strength and range, and let a little fatigue show only in later rounds." },
+    str: { name: "Train", cls: "s", text: "Most of the gap is in movements rated 4 or 5, with any mobility limiters adding to it. Build strength and range, and let a little fatigue show only in later rounds." },
     cond: { name: "Conditioning", cls: "c", text: "The movements are there. Most of the gap is exposure at 6 or 7, so use them in regular workouts and bigger sets." }
   };
   function avgOf(sec, items) {
@@ -1244,7 +1244,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
         var share = f[k] / f.tot;
         return share ? '<span class="' + FOCUS[k].cls + '" style="flex:' + share.toFixed(4) + ' 1 0">' + (share >= 0.1 ? pct(k) + "%" : "") + '</span>' : "";
       }).join("");
-      h += '<div class="bar" role="img" aria-label="Focus split: skill ' + pct("skill") + ' percent, strength and mobility ' + pct("str") + ' percent, conditioning ' + pct("cond") + ' percent">' + segs + '</div>';
+      h += '<div class="bar" role="img" aria-label="Focus split: skill ' + pct("skill") + ' percent, train ' + pct("str") + ' percent, conditioning ' + pct("cond") + ' percent">' + segs + '</div>';
       h += '<div class="split-legend">' + ["skill", "str", "cond"].map(function (k) {
         return '<div><b>' + FOCUS[k].name + '</b><em>' + pct(k) + '%</em></div>';
       }).join("") + '</div>';
