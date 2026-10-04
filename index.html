@@ -770,7 +770,10 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     return h;
   }
 
-  function level(x) {
+  /* Deadlift bodyweight bands. Snatch and Clean use the same bands scaled by their target ratio to the deadlift (45% and 55%). */
+  var LEVEL_SCALE = { "Deadlift": 1, "Clean": 0.55, "Snatch": 0.45 };
+  function level(x, lift) {
+    x = x / (LEVEL_SCALE[lift] || 1);
     if (x < 1.5) return "Beginner";
     if (x < 1.75) return "Intermediate";
     if (x < 2.25) return "Advanced";
@@ -782,10 +785,10 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     if (!(kg > 0)) return null;
     var bw = parseFloat(state.profile.weight), mult = bw > 0 ? kg / bw : null;
     var chip = "Baseline", note;
-    if (mult === null) note = lift === "Deadlift" ? "Add bodyweight to see a level." : "Add bodyweight to see the multiple.";
+    if (mult === null) note = LEVEL_SCALE[lift] ? "Add bodyweight to see a level." : "Add bodyweight to see the multiple.";
     else {
       note = mult.toFixed(2) + "× bodyweight.";
-      if (lift === "Deadlift") chip = level(mult);
+      if (LEVEL_SCALE[lift]) chip = level(mult, lift);
     }
     return { kg: kg, chip: chip, note: note, mult: mult };
   }
@@ -808,7 +811,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       list.forEach(function (x) {
         var cls = x.st === "in" ? "band-c" : x.st === "below" ? "band-s" : "band-k";
         var lbl = x.st === "in" ? "In range" : x.st === "below" ? "Below range" : "Above range";
-        var note = x.st === "in" ? "No change needed." : x.st === "below" ? "Goal: add " + x.need + " kg." : "About " + x.over + " kg above range.";
+        var note = x.st === "in" ? "Aim to increase as your strength numbers improve." : x.st === "below" ? "Goal: add " + x.need + " kg." : "About " + x.over + " kg above range.";
         h += '<li class="rt"><div class="rt-l"><b>' + esc(x.R.lift) + '</b><div class="sub">compared with ' + esc(x.R.of) + '</div></div>' +
           '<div class="rt-n num"><b>' + x.c + ' kg</b></div>' +
           '<span class="chip rt-c ' + cls + '">' + lbl + '</span>' +
@@ -1370,7 +1373,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     t += "Reference loads: light " + loadText("light") + "; heavy " + loadText("heavy") + "; dumbbell " + loadText("db") + "\n";
     var lf = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; }).map(function (l) { return l + " " + state.lifts[l]; });
     if (lf.length) t += "1RMs (kg): " + lf.join(", ") + "\n";
-    var bl = ["Deadlift", "Snatch", "Clean"].map(function (l) { var b = baseInfo(l); return b ? l + " " + b.kg + " kg" + (b.mult !== null ? " (" + b.mult.toFixed(2) + "x bodyweight" + (l === "Deadlift" ? ", " + b.chip : "") + ")" : "") : ""; }).filter(Boolean);
+    var bl = ["Deadlift", "Snatch", "Clean"].map(function (l) { var b = baseInfo(l); return b ? l + " " + b.kg + " kg" + (b.mult !== null ? " (" + b.mult.toFixed(2) + "x bodyweight" + (LEVEL_SCALE[l] ? ", " + b.chip : "") + ")" : "") : ""; }).filter(Boolean);
     if (bl.length) t += "Baseline lifts: " + bl.join("; ") + "\n";
     var rr = ratioRows();
     if (rr.length) {
