@@ -5,13 +5,22 @@ A single-file web app (`index.html`, no build step) that turns subjective 0 to 1
 Currently covers the Rx and Scaled mixed-modal versions. A weightlifting version is planned.
 
 ## Tiers
-- **Tier 1 (free):** summary of the ratings, a basic focus indicator (skill, strength and mobility, conditioning) and the score key.
-- **Tier 2 (paid, not yet enforced):** full weekly plan, strength ratios, weightlifting / gymnastics / metabolic conditioning summaries and metcon benchmark levels. The lock in this version is a client-side preview only.
+- **Tier 1 (free, no login):** summary of the ratings, a basic focus indicator (skill, strength and mobility, conditioning) and the score key.
+- **Tier 2 (login plus unlock):** full weekly plan, 1RMs and strength ratios, weightlifting / gymnastics / metabolic conditioning summaries, metcon benchmark levels, and saved assessments. 1RM entry only appears once Tier 2 is unlocked.
 
 ## Run it
-Open `index.html` in a browser. Drafts are kept in the browser's localStorage only.
+Open `index.html` in a browser (or host the file on any static host). Drafts are also kept in the browser's localStorage.
+
+## Supabase
+Project: "Performance Gap Analysis" (ap-southeast-2). Schema is in `supabase/migrations/`.
+- Athletes sign in with email and password (magic link is planned once payments are set up).
+- `assessments`: each athlete's saved assessments, readable and editable only by that athlete (row level security).
+- `entitlements`: whether Tier 2 is unlocked for a login. Athletes can read their own row but cannot change it. To unlock someone for now, set `tier2` to true for their user in the Supabase dashboard (Table editor, `entitlements`).
+- The URL and publishable key in `index.html` are safe to be public. Never put the service role key in the app.
+
+Note: the plan is computed in the browser, so the unlock flag controls what the app shows but is not a hard paywall. A real paywall needs server-side plan generation.
 
 ## Next steps
-- Supabase: athlete logins, saved assessments, and a server-side flag for Tier 2.
+- Configure Supabase Auth: site URL and redirect URLs once hosted, and a custom email sender.
 - Hosting from this repo (for example Netlify, Vercel or Cloudflare Pages).
-- Payments.
+- Payments, then magic-link emails after purchase.

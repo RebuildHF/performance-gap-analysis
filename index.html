@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <title>Performance Gap Analysis</title>
@@ -214,6 +215,12 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 .t2-head .btn { margin-left: auto; }
 .lock svg { flex: none; color: var(--accent); }
 .badge { font-family: var(--font-display); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; background: var(--accent); color: var(--accent-ink); border-radius: 5px; padding: 2px 8px; font-weight: 700; }
+.auth label { display: block; margin: 8px 0; font-size: .88rem; font-weight: 600; }
+.auth input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 400; margin-top: 3px; }
+.auth-msg { color: var(--muted); font-size: .86rem; margin: 8px 0 0; }
+.saved ul { list-style: none; padding: 0; margin: 10px 0 0; }
+.saved li { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: .9rem; }
+.saved li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .lock ul { margin: 10px 0 12px; padding-left: 18px; }
 .lock li { margin: 3px 0; font-size: .92rem; }
 
@@ -405,7 +412,11 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   if (state && state.example && !state.profile) state = exampleState();
   state = normalize(state);
   var view = "scores";
-  var tier2Open = false;
+  var SUPABASE_URL = "https://qhntghbvxwvtgdvfoido.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_rRdAofqZIIiqneZTlAcKRQ_EWjDrPbw"; /* publishable key: safe in the browser, access is limited by row level security */
+  var sb = null;
+  try { if (window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) {}
+  var auth = { user: null, uid: null, ready: false, tier2: false, msg: "", saveMsg: "", list: [], currentId: null };
 
   function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
 
@@ -779,6 +790,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   }
 
   function liftsSection() {
+    if (!auth.tier2) return '<details class="card" data-sec="lifts"><summary><h2>1RMs</h2><span class="prog">Full plan</span></summary><div class="sec-body"><p class="sec-note">1RMs are part of the full plan. Sign in on the Results tab to enter them once and save them for next time.</p></div></details>';
     var n = LIFTS.filter(function (l) { return Number(state.lifts[l]) > 0; }).length;
     var rows = LIFTS.map(function (l, i) {
       var v = state.lifts[l], id = "lift-" + i;
@@ -1059,7 +1071,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       g.subs.forEach(function (sub) { if (sub[1].length) h += catRow(sub[0], listAvg(sub[1]), "sub"); });
       var lows = sorted(g.list.filter(function (m) { return m.score !== null && m.score <= 5; })).slice(0, 3);
       if (lows.length) h += '<p class="fine grp-low">Lowest: ' + namesWithScores(lows) + '</p>';
-      if (g.title === "Weightlifting") { var rl = ratioLine(); if (rl) h += '<p class="fine grp-low">' + esc(rl) + '</p>'; }
+      if (g.title === "Weightlifting" && auth.tier2) { var rl = ratioLine(); if (rl) h += '<p class="fine grp-low">' + esc(rl) + '</p>'; }
     });
     h += '<div class="grp-h"><span>Mobility and lifestyle</span></div>';
     h += catRow("Mobility", avgOf("mob", MOB), "sub") + catRow("Lifestyle", avgOf("life", LIFE), "sub");
@@ -1111,17 +1123,102 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   }
 
   function lockHtml() {
+    var body;
+    if (!sb) body = '<p class="fine">Sign-in is unavailable right now because the sign-in service did not load. Check your connection and reload the page.</p>';
+    else if (auth.user) body = '<p class="fine">Signed in as <b>' + esc(auth.user.email) + '</b>. The full plan is not unlocked on this account yet. Contact Rebuild to unlock it.</p><div class="plan-actions"><button type="button" class="btn" id="btn-signout">Sign out</button></div>';
+    else body = '<form id="auth-form" class="auth" novalidate><label>Email<input type="email" id="auth-email" autocomplete="email"></label>' +
+      '<label>Password<input type="password" id="auth-pass" autocomplete="current-password"></label>' +
+      '<div class="plan-actions"><button type="submit" class="btn primary" id="btn-signin">Sign in</button><button type="button" class="btn" id="btn-signup">Create account</button></div>' +
+      '<p class="auth-msg" id="auth-msg" role="status">' + esc(auth.msg) + '</p></form>';
     return '<div class="card lock"><div class="lock-head">' +
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
       '<h3>Full weekly plan</h3><span class="badge">Paid</span></div>' +
       '<ul><li>How the week splits across practice, strengthen and condition</li>' +
       '<li>Every movement with how often to train it and how</li>' +
-      '<li>Patterns across movements, and what to check before programming</li>' +
-      '<li>Strength ratios across your lifts, with what to work on</li>' +
-      '<li>Athlete profile with 1RMs against bodyweight, preferences and benchmarks</li>' +
-      '<li>Plan text to copy and send</li></ul>' +
-      '<div class="plan-actions"><button type="button" class="btn primary" id="btn-unlock">Preview the full plan</button></div>' +
-      '<p class="fine">Payment is not connected yet. This opens the full plan so you can see what a paying athlete gets.</p></div>';
+      '<li>Summaries for weightlifting, gymnastics and metabolic conditioning</li>' +
+      '<li>1RMs and strength ratios, with what to work on</li>' +
+      '<li>Metcon benchmark levels</li>' +
+      '<li>Save your assessments and reopen them later</li>' +
+      '<li>Plan text to copy and send</li></ul>' + body + '</div>';
+  }
+  function savedHtml() {
+    var h = '<div class="card ctx saved"><h3>Saved assessments</h3><div class="plan-actions"><button type="button" class="btn primary" id="btn-save">Save this assessment</button><span class="copied" id="save-msg" role="status">' + esc(auth.saveMsg) + '</span></div>';
+    if (auth.list.length) h += '<ul>' + auth.list.map(function (a) {
+      var d = a.updated_at ? new Date(a.updated_at).toLocaleDateString() : "";
+      return '<li><span>' + esc(a.label || "Assessment") + (d ? ' · ' + esc(d) : '') + (a.id === auth.currentId ? ' · open' : '') + '</span><button type="button" class="btn" data-load="' + esc(a.id) + '">Open</button><button type="button" class="btn" data-del="' + esc(a.id) + '">Delete</button></li>';
+    }).join("") + '</ul>';
+    else h += '<p class="fine">Nothing saved yet.</p>';
+    return h + '</div>';
+  }
+
+  /* ---------- sign-in and saving (Supabase) ---------- */
+  function setAuthMsg(m) { auth.msg = m; var el = $("auth-msg"); if (el) el.textContent = m; }
+  function doAuth(kind) {
+    var em = $("auth-email").value.trim(), pw = $("auth-pass").value;
+    if (!em || pw.length < 6) { setAuthMsg("Enter your email and a password of at least 6 characters."); return; }
+    setAuthMsg("Working…");
+    var p = kind === "up" ? sb.auth.signUp({ email: em, password: pw }) : sb.auth.signInWithPassword({ email: em, password: pw });
+    p.then(function (res) {
+      if (res.error) setAuthMsg(res.error.message);
+      else if (kind === "up" && !res.data.session) setAuthMsg("Check your email to confirm your account, then sign in.");
+      else setAuthMsg("");
+    }).catch(function () { setAuthMsg("Something went wrong. Please try again."); });
+  }
+  function loadList() {
+    return sb.from("assessments").select("id,label,mode,updated_at").order("updated_at", { ascending: false }).limit(50)
+      .then(function (r) { auth.list = (r && r.data) || []; });
+  }
+  function refreshAuth(session) {
+    auth.user = session ? session.user : null; auth.tier2 = false; auth.list = []; auth.currentId = null; auth.saveMsg = "";
+    if (!auth.user) { setMode(state.mode); return; }
+    sb.from("entitlements").select("tier2").eq("user_id", auth.user.id).maybeSingle().then(function (r) {
+      auth.tier2 = !!(r && r.data && r.data.tier2);
+      return auth.tier2 ? loadList() : null;
+    }).then(function () { setMode(state.mode); }).catch(function () { setMode(state.mode); });
+  }
+  function handleAuth(ev, session) {
+    var uid = session ? session.user.id : null;
+    if (auth.ready && uid === auth.uid) return;
+    auth.ready = true; auth.uid = uid; refreshAuth(session);
+  }
+  function saveAssessment() {
+    var snap = JSON.parse(JSON.stringify(state)); snap.example = false;
+    var row = { mode: state.mode, label: (state.name || "Assessment") + " · " + (state.mode === "rx" ? "Rx" : "Scaled"), data: snap };
+    var done = function (msg) { auth.saveMsg = msg; renderPlan(); };
+    var insert = function () {
+      return sb.from("assessments").insert(row).select("id").then(function (r) {
+        if (r.error) return done("Could not save: " + r.error.message);
+        auth.currentId = r.data[0].id; return loadList().then(function () { done("Saved"); });
+      });
+    };
+    if (!auth.currentId) return insert();
+    sb.from("assessments").update(row).eq("id", auth.currentId).select("id").then(function (r) {
+      if (r.error) return done("Could not save: " + r.error.message);
+      if (!r.data || !r.data.length) { auth.currentId = null; return insert(); }
+      return loadList().then(function () { done("Saved"); });
+    });
+  }
+  function openAssessment(id) {
+    sb.from("assessments").select("data").eq("id", id).single().then(function (r) {
+      if (r.error || !r.data) { auth.saveMsg = "Could not open that assessment."; renderPlan(); return; }
+      state = normalize(r.data.data); state.example = false; auth.currentId = id; auth.saveMsg = "Opened";
+      $("banner").hidden = true; setMode(state.mode === "scaled" ? "scaled" : "rx");
+    });
+  }
+  function deleteAssessment(id) {
+    if (!window.confirm("Delete this saved assessment?")) return;
+    sb.from("assessments").delete().eq("id", id).then(function () {
+      if (auth.currentId === id) auth.currentId = null;
+      return loadList();
+    }).then(function () { auth.saveMsg = "Deleted"; renderPlan(); });
+  }
+  function bindAuth() {
+    var f = $("auth-form"); if (f) f.addEventListener("submit", function (e) { e.preventDefault(); doAuth("in"); });
+    var su = $("btn-signup"); if (su) su.addEventListener("click", function () { doAuth("up"); });
+    var so = $("btn-signout"); if (so) so.addEventListener("click", function () { sb.auth.signOut(); });
+    var sv = $("btn-save"); if (sv) sv.addEventListener("click", saveAssessment);
+    document.querySelectorAll("[data-load]").forEach(function (b) { b.addEventListener("click", function () { openAssessment(b.getAttribute("data-load")); }); });
+    document.querySelectorAll("[data-del]").forEach(function (b) { b.addEventListener("click", function () { deleteAssessment(b.getAttribute("data-del")); }); });
   }
 
   function renderPlan() {
@@ -1188,11 +1285,10 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     t2 += benchHtml();
     t2 += '<div class="plan-actions"><button type="button" class="btn primary" id="btn-copy">Copy plan as text</button><span class="copied" id="copied" role="status"></span></div>';
     h += tier1Html(r);
-    if (tier2Open) h += '<div class="card t2-head"><h2>Full plan</h2><span class="badge">Paid · preview</span><button type="button" class="btn" id="btn-lock">Lock again</button></div>' + t2;
+    if (auth.tier2) h += '<div class="card t2-head"><h2>Full plan</h2><span class="badge">Unlocked</span><button type="button" class="btn" id="btn-signout">Sign out</button></div>' + savedHtml() + t2;
     else h += lockHtml();
     $("panel-plan").innerHTML = h;
-    var ub = $("btn-unlock"); if (ub) ub.addEventListener("click", function () { tier2Open = true; renderPlan(); });
-    var lb = $("btn-lock"); if (lb) lb.addEventListener("click", function () { tier2Open = false; renderPlan(); });
+    bindAuth();
     var cb = $("btn-copy");
     if (cb) cb.addEventListener("click", function () { copyPlan(r); });
   }
@@ -1309,6 +1405,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   $("banner").hidden = !state.example;
   document.body.setAttribute("data-view", view);
   setMode(state.mode === "scaled" ? "scaled" : "rx");
+  if (sb) sb.auth.onAuthStateChange(function (ev, session) { setTimeout(function () { handleAuth(ev, session); }, 0); });
 })();
 </script>
 
