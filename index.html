@@ -133,6 +133,10 @@ input.sc.band-p, input.sc.band-s, input.sc.band-c, input.sc.band-k { border-colo
 .lane-p { border-left-color: var(--p-solid); }
 .lane-s { border-left-color: var(--s-solid); }
 .lane-c { border-left-color: var(--c-solid); }
+.lane-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; align-items: start; }
+.lane-cols .lane { padding: 12px 12px 10px; }
+.lane-cols .lane-top .cnt { margin-left: 0; }
+.lane-cols ul.mv .cat { display: none; }
 .lane-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
 .lane-top .freq { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; letter-spacing: .03em; padding: 1px 9px; border-radius: 5px; }
 .lane-p .freq { background: var(--p-bg); color: var(--p-fg); }
@@ -1414,6 +1418,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       '<div class="sub-h">Rated 6 · may need one extra conditioning day on top of classes</div><p class="how">Pair a cardio element with a gymnastics or weightlifting element so breathing gets hard without pushing to muscular failure.</p>' + listHtml(r.c6, "Nothing rated 6.") + '</section>';
 
     var lanesHtml = t2.slice(lanesStart);
+    t2 = t2.slice(0, lanesStart) + '<div class="lane-cols">' + lanesHtml + '</div>';
 
     /* patterns */
     t2 += ratiosHtml(r);
