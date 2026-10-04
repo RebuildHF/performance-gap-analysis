@@ -275,13 +275,16 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 }
 @media print {
   body { background: #fff !important; }
-  .tabs, .banner, .legend, .key-note, .panel-scores, .seg, .plan-actions, .t2-head button, .saved, #btn-signout, .auth-card { display: none !important; }
+  .t2-head, .tabs, .banner, .legend, .key-note, .panel-scores, .seg, .plan-actions, .t2-head button, .saved, #btn-signout, .auth-card { display: none !important; }
   .top > div:first-child p { display: none; }
   .app { display: block !important; }
   .panel-plan { display: block !important; position: static !important; max-height: none !important; overflow: visible !important; }
-  .card { box-shadow: none !important; }
-  .card li, .card h3, .sub-h { break-inside: avoid; }
-  .card h3, .sub-h { break-after: avoid; }
+  .card { box-shadow: none !important; break-inside: avoid; }
+  @page { size: A4; margin: 10mm; }
+  .wrap { zoom: .86; }
+  .stack > .card, .stack > section { margin-bottom: 8px !important; }
+  .lane-top, .lane .how, .lane .sub-h, .card h3, .sub-h { break-after: avoid; }
+  .card li, .card dl > div, .lifts > div, .bcol, .cat-row, .rt, .split-legend, .tiles, .goals, .alert, .ts, .t1 .bar, .seg-bar { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
