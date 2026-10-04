@@ -602,6 +602,16 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     if (!h.hits.length) return "";
     return " Important variable to address: mobility is limited or painful in " + h.hits.join(", ") + (h.pain ? ", so seek a qualified professional opinion for the pain" : "") + ". Address this alongside, or before, adding load.";
   }
+  /* Mobility joints (words in the joint names) that matter for each lift, used to reflect mobility scores in the ratio notes. */
+  var UP = ["Shoulder", "Elbow", "Wrist", "Upper Back"], LOW = ["Hip", "Knee", "Ankle"];
+  var LIFT_JOINTS = {
+    "Back Squat": LOW.concat(["Lower Back"]),
+    "Front Squat": LOW.concat(["Upper Back", "Wrist", "Shoulder"]),
+    "Overhead Squat": LOW.concat(UP),
+    "Snatch": LOW.concat(UP), "Power Snatch": LOW.concat(UP), "Hang Snatch": LOW.concat(UP),
+    "Clean": LOW.concat(["Upper Back", "Wrist", "Shoulder"]), "Power Clean": LOW.concat(["Upper Back", "Wrist", "Shoulder"]), "Hang Clean": LOW.concat(["Upper Back", "Wrist", "Shoulder"]),
+    "Deadlift": ["Hip", "Lower Back", "Knee"]
+  };
   function wlThemes(r) {
     var out = [], sq = squatTheme(r);
     if (sq.on) out.push({ head: "Squatting", text: sq.text + mobFlag(["Hip", "Knee", "Ankle", "Lower Back", "Upper Back"].concat(sq.emphasis === "Overhead Squat" ? ["Shoulder", "Elbow", "Wrist"] : [])) });
@@ -648,8 +658,8 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       out.push({
         head: x.R.lift + " against " + x.R.of,
         text: x.st === "below"
-          ? (ADVICE[x.R.lift + "|" + x.R.of] || "") + (x.R.lift === "Split Jerk" ? " Check you can access a good split receiving position, and that your dip is balanced and your drive is longer than your dip. By closing this gap you could increase your Split Jerk by about " + x.need + " kg without an increase in strength numbers." : x.R.lift === "Push Jerk" ? " Check you can access a good receiving position, and that your dip is balanced and your drive is longer than your dip. By closing this gap you could increase your Push Jerk by about " + x.need + " kg without an increase in strength numbers." : " Goal: add " + x.need + " kg.")
-          : ABOVE[x.R.lift + "|" + x.R.of] || (x.R.lift + " is above range by about " + x.over + " kg, so " + x.R.of + " may be the limiter.")
+          ? (ADVICE[x.R.lift + "|" + x.R.of] || "") + " Goal: add " + x.need + " kg." + mobFlag(LIFT_JOINTS[x.R.lift] || [])
+          : (ABOVE[x.R.lift + "|" + x.R.of] || (x.R.lift + " is above range by about " + x.over + " kg, so " + x.R.of + " may be the limiter.")) + mobFlag(LIFT_JOINTS[x.R.of] || [])
       });
     });
     var byName = {};
