@@ -140,7 +140,7 @@ input.sc.band-p, input.sc.band-s, input.sc.band-c, input.sc.band-k { border-colo
 .how { margin: 6px 0 8px; color: var(--muted); font-size: .86rem; max-width: 70ch; }
 .sub-h { font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 10px 0 2px; font-weight: 600; }
 ul.mv { list-style: none; padding: 0; margin: 0; }
-ul.mv li { display: flex; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid var(--line); min-width: 0; }
+ul.mv li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 5px 0; border-top: 1px solid var(--line); min-width: 0; }
 ul.mv .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
 ul.mv .cat { font-size: .74rem; color: var(--muted); white-space: nowrap; }
 ul.mv .n { width: 1.9rem; text-align: center; border-radius: 5px; font-weight: 600; font-size: .86rem; padding: 1px 0; font-variant-numeric: tabular-nums; flex: none; }
@@ -170,6 +170,10 @@ input.kg { width: 4.6rem; text-align: center; font-weight: 600; border: 1px soli
 input.kg::-webkit-outer-spin-button, input.kg::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .unit { color: var(--muted); font-size: .82rem; width: 1.4rem; }
 .sec-note.load { color: var(--ink); background: var(--surface-2); border-radius: 7px; padding: 7px 10px; }
+.sec-submit { margin-top: 14px; display: flex; justify-content: flex-end; }
+.sec-submit[hidden] { display: none; }
+.row-spacer { min-height: 1px; }
+.ts { flex-basis: 100%; font-size: .82rem; color: var(--s-fg); background: var(--s-bg); border-radius: 6px; padding: 5px 8px; }
 .rows + .qg { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 .qg + .qg { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .qg h3 { font-size: 1.15rem; text-transform: uppercase; }
@@ -245,6 +249,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 }
 @media (max-width: 560px) {
   .rows { grid-template-columns: minmax(0, 1fr); }
+  .row-spacer { display: none; }
   .legend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .split-legend { grid-template-columns: minmax(0, 1fr); }
   .goals { grid-template-columns: minmax(0, 1fr); }
@@ -344,7 +349,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     rowPref: ["Row for calories", "Row for metres", "No preference"],
     liftPref: ["1 rep max (without fatigue)", "1 rep max (under fatigue/post WOD)", "3-5 reps with moderate weight", "5-10 reps with moderate weight", "+10 reps of light weight"]
   };
-  var QANSWERS = ["gymReps","gymStyle","rowFormat","rowPref","t500","t1000","row2k","row5k","run1k","run5k","bike3k","bike10k","liftPref"];
+  var QANSWERS = ["gymReps","gymStyle","rowFormat","rowPref","t500","t1000","row5k","run400","run1k","run5k","bike1k","bike3k","bike10k","liftPref"];
 
   function movementSections(mode) {
     return [
@@ -374,7 +379,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     return s;
   }
   function blankQ() {
-    return { gymReps: "", gymStyle: "", gymNotes: "", rowFormat: "", rowPref: "", t500: "", t1000: "", row2k: "", row5k: "", run1k: "", run5k: "", bike3k: "", bike10k: "", metNotes: "", liftPref: "", liftNotes: "" };
+    return { gymReps: "", gymStyle: "", gymNotes: "", rowFormat: "", rowPref: "", t500: "", t1000: "", row5k: "", run400: "", run1k: "", run5k: "", bike1k: "", bike3k: "", bike10k: "", metNotes: "", liftPref: "", liftNotes: "" };
   }
   function normalize(st) {
     st.goals = Object.assign({ m6: "", m12: "", y3: "" }, st.goals || {});
@@ -398,7 +403,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       scores: exampleScores(), reps: reps,
       lifts: { "Snatch": 75, "Power Snatch": 65, "Hang Snatch": 66, "Overhead Squat": 90, "Clean": 100, "Power Clean": 88, "Hang Clean": 80, "Front Squat": 115, "Back Squat": 140, "Deadlift": 170, "Strict Press": 60, "Push Press": 80, "Push Jerk": 85, "Split Jerk": 90 },
       mobNotes: "Tight left ankle limits squat depth. Shoulders feel fine overhead.",
-      q: { gymReps: QOPT.gymReps[0], gymStyle: "Kipping", gymNotes: "Handles volume well, skills are the limiter.", rowFormat: QOPT.rowFormat[1], rowPref: "Row for calories", t500: "1:34", t1000: "3:20", row2k: "7:40", row5k: "20:10", run1k: "4:15", run5k: "23:30", bike3k: "4:50", bike10k: "16:10", metNotes: "", liftPref: QOPT.liftPref[2], liftNotes: "" }
+      q: { gymReps: QOPT.gymReps[0], gymStyle: "Kipping", gymNotes: "Handles volume well, skills are the limiter.", rowFormat: QOPT.rowFormat[1], rowPref: "Row for calories", t500: "1:34", t1000: "3:20", row5k: "20:10", run1k: "4:15", run5k: "23:30", bike3k: "4:50", bike10k: "16:10", metNotes: "", liftPref: QOPT.liftPref[2], liftNotes: "" }
     });
   }
 
@@ -483,7 +488,10 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     if (note) notes += '<p class="sec-note">' + esc(note) + '</p>';
     if (loadKind) notes += '<p class="sec-note load" data-loadnote="' + loadKind + '">' + esc(loadNote(loadKind)) + '</p>';
     return '<details class="card"' + (open ? " open" : "") + ' data-sec="' + sec + '"><summary><h2>' + esc(title) + '</h2><span class="prog" data-prog="' + sec + '">' + scored + "/" + items.length + ' scored</span></summary>' +
-      '<div class="sec-body">' + notes + '<div class="rows">' + items.map(function (n) { return rowHtml(sec, n); }).join("") + '</div>' + (extra || "") + '</div></details>';
+      '<div class="sec-body">' + notes + '<div class="rows">' + items.map(function (n, i) { return rowHtml(sec, n) + (sec === "mob" && i === 2 ? '<div class="row-spacer" aria-hidden="true"></div>' : ""); }).join("") + '</div>' + (extra || "") + submitBtn(sec, scored === items.length) + '</div></details>';
+  }
+  function submitBtn(sec, show) {
+    return '<div class="sec-submit" data-submit-wrap="' + sec + '"' + (show ? "" : " hidden") + '><button type="button" class="btn primary" data-submit="' + sec + '">Submit and close</button></div>';
   }
   function pctTxt(x) { return Math.round(x * 100); }
   function ratioText(R) { return (R.lo === R.hi ? "" : pctTxt(R.lo) + "–") + pctTxt(R.hi) + "% of " + R.of; }
@@ -685,7 +693,6 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     row500: { name: "500m row", erg: true, cut: [85, 95, 110, 130] },
     row1k: { name: "1000m row", erg: true, cut: [180, 195, 210, 270] },
     row5k: { name: "5km row", erg: true, cut: [1080, 1140, 1260, 1380] },
-    row2k: { name: "2km row", erg: true, cut: [405, 435, 465, 495] },
     run1k: { name: "1km run", erg: false, cut: [240, 300, 360, 420] },
     run5k: { name: "5km run", erg: false, cut: [1080, 1350, 1650, 2100] },
     bike3k: { name: "3km Airbike", erg: true, cut: [225, 270, 300, 330] },
@@ -710,7 +717,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   function metThemes(r) {
     var Q = state.q, out = [], lvls = [];
     var groups = [
-      ["Row", [["row500", Q.t500, "500m"], ["row1k", Q.t1000, "1000m"], ["row2k", Q.row2k, "2km"], ["row5k", Q.row5k, "5km"]]],
+      ["Row", [["row500", Q.t500, "500m"], ["row1k", Q.t1000, "1000m"], ["row5k", Q.row5k, "5km"]]],
       ["Airbike", [["bike3k", Q.bike3k, "3km"], ["bike10k", Q.bike10k, "10km"]]],
       ["Run", [["run1k", Q.run1k, "1km"], ["run5k", Q.run5k, "5km"]]]
     ];
@@ -796,7 +803,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       var v = state.lifts[l], id = "lift-" + i;
       return '<div class="row"><label class="nm" for="' + id + '">' + esc(l) + '</label><span class="ctl"><input class="kg num" id="' + id + '" type="number" inputmode="decimal" min="0" step="0.5" data-lift="' + esc(l) + '" value="' + (v === undefined ? "" : v) + '" aria-label="' + esc(l) + ' one rep max in kilograms"><span class="unit">kg</span></span></div>';
     }).join("");
-    return '<details class="card" data-sec="lifts"><summary><h2>1RMs</h2><span class="prog" data-prog="lifts">' + n + '/' + LIFTS.length + ' entered</span></summary><div class="sec-body"><p class="sec-note">Kilograms. Leave blank if not tested.</p><div class="rows">' + rows + '</div>' + ratioRef() + '</div></details>';
+    return '<details class="card" data-sec="lifts"><summary><h2>1RMs</h2><span class="prog" data-prog="lifts">' + n + '/' + LIFTS.length + ' entered</span></summary><div class="sec-body"><p class="sec-note">Kilograms. Leave blank if not tested.</p><div class="rows">' + rows + '</div>' + submitBtn("lifts", true) + '</div></details>';
   }
   function radioGroup(path, legend, opts) {
     var cur = getPath(state, path);
@@ -828,10 +835,11 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       '<div class="times">' +
       textField("q.t500", "What is your 500m row time?", "m:ss") +
       textField("q.t1000", "What is your 1000m row time?", "m:ss") +
-      textField("q.row2k", "What is your 2km row time?", "m:ss") +
       textField("q.row5k", "What is your 5km row time?", "mm:ss") +
+      textField("q.run400", "What is your 400m run time?", "m:ss") +
       textField("q.run1k", "What is your 1km run time?", "m:ss") +
       textField("q.run5k", "What is your 5km run time?", "mm:ss") +
+      textField("q.bike1k", "What is your 1000m Airbike time?", "m:ss") +
       textField("q.bike3k", "What is your 3km Airbike time?", "m:ss") +
       textField("q.bike10k", "What is your 10km Airbike time?", "mm:ss") + '</div>' +
       notesField("q.metNotes", "Any additional comments about your overall metabolic conditioning performance level?", "notes") + '</div>';
@@ -839,7 +847,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   function liftQualCard() {
     return '<details class="card" data-sec="wlq"><summary><h2>Qualifying questions</h2></summary><div class="sec-body"><div class="qg">' +
       radioGroup("q.liftPref", QPRE, QOPT.liftPref) +
-      notesField("q.liftNotes", "Any additional comments about your overall weightlifting performance level?", "notes") + '</div></div></details>';
+      notesField("q.liftNotes", "Any additional comments about your overall weightlifting performance level?", "notes") + '</div>' + submitBtn("wlq", true) + '</div></details>';
   }
 
   function renderScores() {
@@ -880,6 +888,8 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       var n = s.items.filter(function (m) { return parseScore(state.scores[keyOf(s.id, m)]) !== null; }).length;
       var el = document.querySelector('[data-prog="' + s.id + '"]');
       if (el) el.textContent = n + "/" + s.items.length + " scored";
+      var sw = document.querySelector('[data-submit-wrap="' + s.id + '"]');
+      if (sw) sw.hidden = n < s.items.length;
     });
     var we = document.querySelector('[data-prog="wl"]');
     if (we) we.textContent = wlCount();
@@ -906,9 +916,24 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     return all;
   }
   function sorted(list) { return list.slice().sort(function (a, b) { return a.score - b.score; }); }
+  /* Troubleshooting by movement. match is a lowercase word in the movement name; joints are words in the mobility joint names.
+     Add more entries as the coaching notes are written. */
+  var TROUBLE = [
+    { match: "pistol", joints: ["Hip", "Knee", "Ankle"], area: "hip and lower limb" }
+  ];
+  function troubleHtml(m) {
+    var nm = m.name.toLowerCase(), out = "";
+    TROUBLE.forEach(function (t) {
+      if (nm.indexOf(t.match) < 0) return;
+      var h = mobHits(t.joints);
+      if (!h.hits.length) return;
+      out += '<div class="ts"><b>Check ' + esc(t.area) + ' mobility:</b> ' + esc(h.hits.join(", ")) + '.' + (h.pain ? ' Seek a qualified professional opinion for the pain.' : ' This may be limiting the movement, so work on range alongside practice.') + '</div>';
+    });
+    return out;
+  }
   function liHtml(m) {
     var rp = (m.unit && m.reps !== undefined && m.reps !== "") ? "<small>" + esc(m.reps) + (m.unit === "m" ? " m" : " unbroken") + "</small>" : "";
-    return '<li><span class="nm">' + esc(m.name) + rp + '</span><span class="cat">' + esc(m.cat) + '</span><span class="n band-' + bandOf(m.score) + '">' + m.score + '</span></li>';
+    return '<li><span class="nm">' + esc(m.name) + rp + '</span><span class="cat">' + esc(m.cat) + '</span><span class="n band-' + bandOf(m.score) + '">' + m.score + '</span>' + troubleHtml(m) + '</li>';
   }
   function listHtml(list, emptyText) {
     if (!list.length) return '<p class="empty">' + emptyText + '</p>';
@@ -978,7 +1003,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   function benchHtml() {
     var Q = state.q;
     var lv = function (id, v) { var l = metLevel(id, v); return l ? v + " · " + MET_LEVELS[l.i] : v; };
-    var bench = dlHtml([["500m row", lv("row500", Q.t500)], ["1000m row", lv("row1k", Q.t1000)], ["2km row", lv("row2k", Q.row2k)], ["5km row", lv("row5k", Q.row5k)], ["1km run", lv("run1k", Q.run1k)], ["5km run", lv("run5k", Q.run5k)], ["3km Airbike", lv("bike3k", Q.bike3k)], ["10km Airbike", lv("bike10k", Q.bike10k)]]);
+    var bench = dlHtml([["500m row", lv("row500", Q.t500)], ["1000m row", lv("row1k", Q.t1000)], ["5km row", lv("row5k", Q.row5k)], ["400m run", Q.run400], ["1km run", lv("run1k", Q.run1k)], ["5km run", lv("run5k", Q.run5k)], ["1000m Airbike", Q.bike1k], ["3km Airbike", lv("bike3k", Q.bike3k)], ["10km Airbike", lv("bike10k", Q.bike10k)]]);
     return bench ? '<div class="card ctx prof"><h3>Metcon benchmarks</h3>' + bench + '</div>' : "";
   }
   function profileHtml() {
@@ -1326,7 +1351,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       if (g[1].length) t += "\n" + g[0] + ":\n" + g[1].map(function (x) { return "- " + x.head + ": " + x.text; }).join("\n") + "\n";
     });
     var lvT = function (id, v) { var l = metLevel(id, v); return l ? v + " (" + MET_LEVELS[l.i] + ")" : v; };
-    var bm = [["500m row", lvT("row500", Q.t500)], ["1000m row", lvT("row1k", Q.t1000)], ["2km row", lvT("row2k", Q.row2k)], ["5km row", lvT("row5k", Q.row5k)], ["1km run", lvT("run1k", Q.run1k)], ["5km run", lvT("run5k", Q.run5k)], ["3km Airbike", lvT("bike3k", Q.bike3k)], ["10km Airbike", lvT("bike10k", Q.bike10k)]].filter(function (p) { return p[1]; });
+    var bm = [["500m row", lvT("row500", Q.t500)], ["1000m row", lvT("row1k", Q.t1000)], ["5km row", lvT("row5k", Q.row5k)], ["400m run", Q.run400], ["1km run", lvT("run1k", Q.run1k)], ["5km run", lvT("run5k", Q.run5k)], ["1000m Airbike", Q.bike1k], ["3km Airbike", lvT("bike3k", Q.bike3k)], ["10km Airbike", lvT("bike10k", Q.bike10k)]].filter(function (p) { return p[1]; });
     if (bm.length) t += "\nMETCON BENCHMARKS:\n" + bm.map(function (p) { return "- " + p[0] + ": " + p[1]; }).join("\n") + "\n\n";
     [["Gymnastics volume", Q.gymReps], ["Gymnastics style", Q.gymStyle], ["Row format", Q.rowFormat], ["Row preference", Q.rowPref], ["Weightlifting preference", Q.liftPref],
      ["Gymnastics comments", Q.gymNotes], ["Conditioning comments", Q.metNotes], ["Weightlifting comments", Q.liftNotes], ["Mobility comments", state.mobNotes]
@@ -1398,6 +1423,12 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
       hideBanner(); updateProgress(); renderPlan(); save();
     }
   }
+  $("panel-scores").addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-submit]") : null;
+    if (!b) return;
+    var d = b.closest("details");
+    if (d) { d.open = false; try { d.scrollIntoView({ block: "nearest" }); } catch (x) {} }
+  });
   $("panel-scores").addEventListener("input", onEdit);
   $("panel-scores").addEventListener("change", onEdit);
 
