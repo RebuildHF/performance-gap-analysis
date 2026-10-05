@@ -490,8 +490,10 @@ body.pdf-mode #pdf-busy { display: flex; }
     var raw = localStorage.getItem(STORE);
     if (raw) { var p = JSON.parse(raw); if (p && p.scores) state = p; }
   } catch (e) {}
-  if (!state) state = exampleState();
-  if (state && state.example && !state.profile) state = exampleState();
+  /* Start blank. Add ?example to the address to load the sample athlete for a demo. */
+  var wantExample = /[?&]example\b/.test(location.search);
+  if (wantExample) state = exampleState();
+  else if (!state || state.example) state = freshState();
   state = normalize(state);
   var view = "scores";
   var SUPABASE_URL = "https://qhntghbvxwvtgdvfoido.supabase.co";
