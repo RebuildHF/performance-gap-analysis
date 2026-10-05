@@ -277,7 +277,12 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   .cat-row { grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 2.4rem; }
   .top h1 { font-size: 1.7rem; }
 }
-#print-doc { display: none; }
+#print-doc { display: none; color-scheme: light; background: #fff; color: #16222c;
+  --bg: #eef1f4; --surface: #ffffff; --surface-2: #f5f7f9; --ink: #16222c; --muted: #5b6a77; --line: #d5dbe1; --accent: #135d73; --accent-ink: #ffffff;
+  --p-bg: #fbe3e1; --p-fg: #8f2a22; --p-solid: #c8453b; --s-bg: #fbefcb; --s-fg: #7a5700; --s-solid: #d69a12;
+  --c-bg: #ddf0e0; --c-fg: #1f6b35; --c-solid: #3e9a5b; --k-bg: #e3e8ed; --k-fg: #566674; --k-solid: #8a99a6; }
+#pdf-busy { position: fixed; inset: 0; z-index: 9999; background: #0f161c; color: #fff; display: none; align-items: center; justify-content: center; font-size: 1.1rem; font-family: var(--font-body); }
+body.pdf-mode #pdf-busy { display: flex; }
 @media print {
   body { background: #fff !important; }
   body > .wrap { display: none !important; }
@@ -1528,12 +1533,74 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
     el.innerHTML = h;
   }
 
-  function savePdf() {
-    var old = document.title, nm = (state.name || "Athlete").trim();
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      var el = document.createElement("script"); el.src = src; el.onload = res; el.onerror = function () { rej(new Error("load " + src)); };
+      document.head.appendChild(el);
+    });
+  }
+  function useDesktopPrint() {
+    var ua = navigator.userAgent || "";
+    var inApp = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|; wv\)|WebView|CriOS|FxiOS|EdgiOS/i.test(ua);
+    var fine = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    return fine && !inApp && typeof window.print === "function";
+  }
+  function printFallback(nm) {
+    var old = document.title;
     document.title = "Performance Gap Analysis - " + nm;
     var restore = function () { document.title = old; window.removeEventListener("afterprint", restore); };
     window.addEventListener("afterprint", restore);
     window.print();
+  }
+  /* Phones and in-app browsers often ignore window.print(), so build the PDF file directly. */
+  function makePdfFile(nm, msg) {
+    var CDN = "https://cdnjs.cloudflare.com/ajax/libs/";
+    var libs = [];
+    if (!window.html2canvas) libs.push(CDN + "html2canvas/1.4.1/html2canvas.min.js");
+    if (!(window.jspdf && window.jspdf.jsPDF)) libs.push(CDN + "jspdf/2.5.1/jspdf.umd.min.js");
+    var busy = $("pdf-busy");
+    if (!busy) { busy = document.createElement("div"); busy.id = "pdf-busy"; busy.setAttribute("role", "status"); document.body.appendChild(busy); }
+    busy.textContent = "Preparing your PDF…";
+    var st = document.getElementById("pdf-style");
+    if (!st) {
+      var css = (document.querySelector("style").textContent.match(/@media print \{([\s\S]*?)\n\}\n/) || [0, ""])[1];
+      css = css.replace(/#print-doc/g, "body.pdf-mode #print-doc").replace(/body > \.wrap \{[^}]*\}/, "body.pdf-mode > .wrap { display: none !important; }")
+        .replace(/@page[^}]*\}/, "").replace(/zoom: \.8;/, "width: 897px; margin: 0; zoom: 1;").replace(/\n  body \{[^}]*\}/, "");
+      st = document.createElement("style"); st.id = "pdf-style"; st.textContent = css; document.head.appendChild(st);
+    }
+    var fail = function (e) {
+      document.body.classList.remove("pdf-mode");
+      msg.textContent = "Could not create the PDF here. Try again on a computer.";
+      setTimeout(function () { msg.textContent = ""; }, 5000);
+      if (window.console) console.error(e);
+    };
+    return libs.reduce(function (p, src) { return p.then(function () { return loadScript(src); }); }, Promise.resolve()).then(function () {
+      document.body.classList.add("pdf-mode");
+      window.scrollTo(0, 0);
+      var pages = Array.prototype.slice.call(document.querySelectorAll("#print-doc .pp"));
+      var jsPDF = window.jspdf.jsPDF, pdf = new jsPDF({ unit: "mm", format: "a4" });
+      var PW = 210, PH = 297, M = 10, maxW = PW - 2 * M, maxH = PH - 2 * M;
+      return pages.reduce(function (p, el, i) {
+        return p.then(function () {
+          return window.html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 897 }).then(function (cv) {
+            var w = maxW, h = cv.height * w / cv.width;
+            if (h > maxH) { h = maxH; w = cv.width * h / cv.height; }
+            if (i > 0) pdf.addPage();
+            pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", M, M, w, h);
+          });
+        });
+      }, Promise.resolve()).then(function () {
+        document.body.classList.remove("pdf-mode");
+        pdf.save("Performance Gap Analysis - " + nm + ".pdf");
+        msg.textContent = "PDF saved";
+        setTimeout(function () { msg.textContent = ""; }, 3000);
+      });
+    }).catch(fail);
+  }
+  function savePdf() {
+    var nm = (state.name || "Athlete").trim() || "Athlete", msg = $("copied") || { textContent: "" };
+    if (useDesktopPrint()) { printFallback(nm); return; }
+    makePdfFile(nm, msg);
   }
 
   /* ---------- wiring ---------- */
