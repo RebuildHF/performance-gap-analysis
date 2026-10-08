@@ -163,6 +163,19 @@ ul.mv .n { width: 1.9rem; text-align: center; border-radius: 5px; font-weight: 6
 
 
 .fields input[type="number"], .fields select { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; background: var(--surface-2); color: var(--ink); font-size: .95rem; width: 100%; }
+.duo { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.duo label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); min-width: 0; }
+.week-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+.daycol { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.day-h { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: .04em; text-transform: uppercase; display: flex; justify-content: space-between; align-items: baseline; }
+.day-h .xtra { font-family: var(--font-body); font-size: .68rem; font-weight: 600; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; text-transform: none; letter-spacing: 0; }
+.day-l { margin-top: 6px; }
+.day-l .chip { display: inline-block; font-size: .68rem; padding: 1px 6px; }
+.day-l ul { list-style: none; margin: 3px 0 0; padding: 0; }
+.day-l li { font-size: .82rem; margin: 2px 0; display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.day-l .n { font-size: .74rem; padding: 0 5px; border-radius: 4px; flex: none; }
+.day-l small { color: var(--muted); font-size: .7rem; }
+.day-l .none { color: var(--muted); margin-left: 6px; }
 .trio { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; }
 .trio label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); min-width: 0; }
 .fl { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--muted); min-width: 0; }
@@ -274,6 +287,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   .split-legend { grid-template-columns: minmax(0, 1fr); }
   .goals { grid-template-columns: minmax(0, 1fr); }
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .duo { grid-template-columns: minmax(0, 1fr); }
   .cat-row { grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 2.4rem; }
   .top h1 { font-size: 1.7rem; }
 }
@@ -303,6 +317,8 @@ body.pdf-mode #pdf-busy { display: flex; }
   #print-doc .track { height: 6px; }
   #print-doc ul.mv li { padding: 2px 0; }
   #print-doc .lane-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: start; }
+  #print-doc .week-days { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  #print-doc .daycol { break-inside: avoid; }
   #print-doc .lane { padding: 10px 10px 8px; border-left-width: 4px; }
   #print-doc .lane-top .freq { font-size: .85rem; }
   #print-doc .lane-top .cnt { margin-left: 0; }
@@ -460,7 +476,7 @@ body.pdf-mode #pdf-busy { display: flex; }
   }
   function normalize(st) {
     st.goals = Object.assign({ m6: "", m12: "", y3: "" }, st.goals || {});
-    st.profile = Object.assign({ gender: "", height: "", weight: "" }, st.profile || {});
+    st.profile = Object.assign({ gender: "", height: "", weight: "", nowDays: "", canDays: "" }, st.profile || {});
     st.reps = st.reps || {};
     st.lifts = st.lifts || {};
     st.q = Object.assign(blankQ(), st.q || {});
@@ -971,6 +987,11 @@ body.pdf-mode #pdf-busy { display: flex; }
       notesField("q.liftNotes", "Any additional comments about your overall weightlifting performance level?", "notes") + '</div>' + submitBtn("wlq", true) + '</div></details>';
   }
 
+  function dayOpts(cur, lo) {
+    var h = '<option value="">Select</option>';
+    for (var n = lo; n <= 7; n++) h += '<option value="' + n + '"' + (String(cur) === String(n) ? " selected" : "") + '>' + n + '</option>';
+    return h;
+  }
   function renderScores() {
     var h = "", P = state.profile;
     var gopts = [["", "Select"], ["Male", "Male"], ["Female", "Female"], ["Other", "Other / prefer not to say"]].map(function (o) {
@@ -982,6 +1003,8 @@ body.pdf-mode #pdf-busy { display: flex; }
       '<label>Gender<select id="f-gender" data-bind="profile.gender">' + gopts + '</select></label>' +
       '<label>Height (cm)<input type="number" inputmode="decimal" min="0" step="1" id="f-height" data-bind="profile.height" value="' + esc(P.height) + '"></label>' +
       '<label>Weight (kg)<input type="number" inputmode="decimal" min="0" step="0.1" id="f-weight" data-bind="profile.weight" value="' + esc(P.weight) + '"></label></div>' +
+      '<div class="duo"><label>Sessions per week you train now<select id="f-now" data-bind="profile.nowDays">' + dayOpts(P.nowDays, 0) + '</select></label>' +
+      '<label>Sessions per week you could train<select id="f-can" data-bind="profile.canDays">' + dayOpts(P.canDays, 1) + '</select></label></div>' +
       '<label>6-month goal<input type="text" id="f-m6" data-bind="goals.m6" value="' + esc(state.goals.m6) + '"></label>' +
       '<label>12-month goal<input type="text" id="f-m12" data-bind="goals.m12" value="' + esc(state.goals.m12) + '"></label>' +
       '<label class="wide">3-year goal<input type="text" id="f-y3" data-bind="goals.y3" value="' + esc(state.goals.y3) + '"></label></div></div>';
@@ -1384,6 +1407,65 @@ body.pdf-mode #pdf-busy { display: flex; }
     document.querySelectorAll("[data-del]").forEach(function (b) { b.addEventListener("click", function () { deleteAssessment(b.getAttribute("data-del")); }); });
   }
 
+
+  /* ---------- weekly breakdown ---------- */
+  var DAY_CAP = { p: 2, s: 2, c: 3 };
+  function weekDays() {
+    var P = state.profile, now = parseInt(P.nowDays, 10), can = parseInt(P.canDays, 10);
+    var d = Math.max(isNaN(now) ? 0 : now, isNaN(can) ? 0 : can);
+    return d >= 1 ? Math.min(d, 7) : 0;
+  }
+  function buildWeek(r, D) {
+    var days = []; for (var i = 0; i < D; i++) days.push({ p: [], s: [], c: [] });
+    var deferred = [];
+    function freq(lane, m) {
+      var f = lane === "p" ? (D >= 5 ? 3 : 2) : lane === "s" ? (D >= 5 && m.score <= 4 ? 3 : 2) : (m.score <= 6 && D >= 4 ? 2 : 1);
+      return Math.min(f, D);
+    }
+    function place(lane, m) {
+      var f0 = freq(lane, m);
+      for (var f = f0; f >= 1; f--) {
+        var best = null;
+        for (var off = 0; off < D; off++) {
+          var chosen = [], ok = true, cost = 0;
+          for (var k = 0; k < f; k++) {
+            var di = (off + Math.round(k * D / f)) % D;
+            if (chosen.indexOf(di) >= 0 || days[di][lane].length >= DAY_CAP[lane]) { ok = false; break; }
+            chosen.push(di); cost += days[di][lane].length + days[di].p.length + days[di].s.length + days[di].c.length;
+          }
+          if (ok && (best === null || cost < best.cost)) best = { cost: cost, days: chosen };
+        }
+        if (best) { best.days.forEach(function (di) { days[di][lane].push(m); }); return f; }
+      }
+      deferred.push({ m: m, lane: lane });
+      return 0;
+    }
+    sorted(r.p).forEach(function (m) { place("p", m); });
+    sorted(r.s).forEach(function (m) { place("s", m); });
+    sorted(r.c6).concat(sorted(r.c7)).forEach(function (m) { place("c", m); });
+    return { days: days, deferred: deferred };
+  }
+  function weekPlanHtml(r) {
+    var D = weekDays(), P = state.profile, now = parseInt(P.nowDays, 10);
+    var h = '<div class="card ctx weekplan"><h3>Weekly breakdown</h3>';
+    if (!D) return h + '<p class="empty">Add how many sessions a week you train now, and how many you could train, to see a day by day breakdown.</p></div>';
+    if (!r.p.length && !r.s.length && !r.c6.length && !r.c7.length) return h + '<p class="empty">Nothing is rated 7 or below. Normal classes are enough for now.</p></div>';
+    var w = buildWeek(r, D);
+    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can.</p>';
+    var LAB = { p: ["Practice", "band-p"], s: ["Train", "band-s"], c: ["Condition", "band-c"] };
+    h += '<div class="week-days">' + w.days.map(function (d, i) {
+      var cur = now >= 1 && i < now ? "" : (now >= 1 ? '<span class="xtra">extra</span>' : "");
+      return '<div class="daycol"><div class="day-h">Day ' + (i + 1) + cur + '</div>' + ["p", "s", "c"].map(function (k) {
+        return '<div class="day-l"><span class="chip ' + LAB[k][1] + '">' + LAB[k][0] + '</span>' + (d[k].length ? '<ul>' + d[k].map(function (m) { return '<li><span>' + esc(m.name) + (m.cat && /barbell|dumbbell/i.test(m.cat) ? ' <small>' + esc(m.cat.replace(/ barbell/i, "")) + '</small>' : "") + '</span><b class="n band-' + bandOf(m.score) + '">' + m.score + '</b></li>'; }).join("") + '</ul>' : '<span class="none">–</span>') + '</div>';
+      }).join("") + '</div>';
+    }).join("") + '</div>';
+    var dn = w.deferred.filter(function (x) { return x.lane !== "c"; }), dc = w.deferred.filter(function (x) { return x.lane === "c"; });
+    var nm = function (x) { return esc(x.m.name) + (x.m.cat && /barbell|dumbbell/i.test(x.m.cat) ? " [" + esc(x.m.cat.replace(/ barbell/i, "")) + "]" : "") + " (" + x.m.score + ")"; };
+    if (dn.length) h += '<div class="sub-h">Next in line, once the movements above lift</div><p class="fine">' + dn.map(nm).join(", ") + '. These do not fit in ' + D + ' session' + (D === 1 ? "" : "s") + ' without crowding the week. Rotate them in as scores improve, or add a session.</p>';
+    if (dc.length) h += '<div class="sub-h">Condition, not scheduled this week</div><p class="fine">' + dc.map(nm).join(", ") + '. Rotate through these in classes and WODs over the coming weeks.</p>';
+    return h + '</div>';
+  }
+
   function renderPlan() {
     var r = compute();
     var h = "";
@@ -1430,6 +1512,8 @@ body.pdf-mode #pdf-busy { display: flex; }
 
     var lanesHtml = t2.slice(lanesStart);
     t2 = t2.slice(0, lanesStart) + '<div class="lane-cols">' + lanesHtml + '</div>';
+    var weekPlan = weekPlanHtml(r);
+    t2 += weekPlan;
 
     /* patterns */
     t2 += ratiosHtml(r);
@@ -1454,7 +1538,7 @@ body.pdf-mode #pdf-busy { display: flex; }
     if (auth.tier2) h += '<div class="card t2-head"><h2>In Depth Breakdown</h2><span class="badge">Free during trial</span><button type="button" class="btn" id="btn-signout">Sign out</button></div>' + savedHtml() + t2;
     else h += lockHtml();
     $("panel-plan").innerHTML = h;
-    renderPrintDoc(r, auth.tier2 ? { week: weekHtml, lanes: lanesHtml, flags: flags } : null);
+    renderPrintDoc(r, auth.tier2 ? { week: weekHtml, lanes: lanesHtml, flags: flags, plan: weekPlan } : null);
     bindAuth();
     var cb = $("btn-copy");
     if (cb) cb.addEventListener("click", function () { savePdf(); });
@@ -1527,6 +1611,7 @@ body.pdf-mode #pdf-busy { display: flex; }
       profileHtml(true) + parts[0] + '</div>';
     h += '<div class="pp pbreak">' + parts[1] + '</div>';
     h += '<div class="pp pbreak">' + d.week + '<div class="lane-cols">' + d.lanes + '</div></div>';
+    h += '<div class="pp pbreak">' + d.plan + '</div>';
     h += '<div class="pp pbreak">' + ratiosPrintHtml() + themeCard("Weightlifting summary", wlThemes(r)) + '</div>';
     h += '<div class="pp pbreak">' + themeCard("Gymnastics summary", gymThemes(r)) + metPrintHtml(r) + '<div class="card ctx diag"><h3>Before programming a low score</h3><ul>' +
       '<li>Has the strength and mobility: it is a <b>skill</b> issue.</li><li>Has the skill and mobility: it is a <b>strength</b> issue.</li>' +
