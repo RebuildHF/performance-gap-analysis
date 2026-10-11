@@ -174,6 +174,7 @@ ul.mv .n { width: 1.9rem; text-align: center; border-radius: 5px; font-weight: 6
 .day-l ul { list-style: none; margin: 3px 0 0; padding: 0; }
 .day-l li { font-size: .82rem; margin: 2px 0; display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
 .day-l .n { font-size: .74rem; padding: 0 5px; border-radius: 4px; flex: none; }
+.day-l small.for { display: block; }
 .day-l small { color: var(--muted); font-size: .7rem; }
 .day-l .none { color: var(--muted); margin-left: 6px; }
 .trio { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; }
@@ -1409,6 +1410,61 @@ body.pdf-mode #pdf-busy { display: flex; }
 
 
   /* ---------- weekly breakdown ---------- */
+
+  /* Assistance exercises and skills that build toward a movement, used for low-scoring (practice) movements in the weekly breakdown.
+     Keys are lower case movement names. These are starting suggestions for a coach to confirm and edit. */
+  var ASSIST = {
+    "front squat": ["Tempo front squat (3 s down, pause at the bottom)", "Front rack holds with front rack mobility work"],
+    "front squats": ["Tempo goblet squat (3 s down, pause at the bottom)", "Dumbbell front rack holds"],
+    "thruster": ["Front squat and push press as separate reps", "Pause front squat, then strict press"],
+    "squat clean": ["Clean pull, then front squat", "Tall clean, then clean from above the knee with a pause"],
+    "power clean": ["Clean pull from the knee, then from the floor", "Hang power clean from above the knee"],
+    "overhead squat": ["Overhead squat with a PVC pipe, pause at the bottom", "Snatch balance"],
+    "squat snatch": ["Snatch balance and overhead squat", "Snatch pull, then hang snatch from above the knee"],
+    "power snatch": ["Snatch high pull and snatch pull", "Hang power snatch from above the knee"],
+    "push press": ["Strict press, then dip and drive practice with an empty bar", "Push press with a pause at the bottom of the dip"],
+    "push jerk": ["Dip and drive from the rack with a pause in the dip", "Push press into a quick re-dip, light"],
+    "deadlift": ["Tempo Romanian deadlift", "Paused deadlift, light"],
+    "front rack walking lunge": ["Front rack split squat", "Goblet walking lunge"],
+    "overhead walking lunge": ["Overhead split squat, light", "Single arm overhead carry"],
+    "cleans (any variation)": ["Dumbbell high pull, then hang clean"],
+    "snatches (any variation)": ["Single arm dumbbell high pull, then hang snatch"],
+    "push press/jerk": ["Strict dumbbell press, then dip and drive practice"],
+    "lunge/step up": ["Slow step up to a low box", "Split squat"],
+    "wall balls": ["Goblet squat, tempo", "Front squat to a push press, then throw to a lower target"],
+    "pull-up": ["Ring rows and slow pull-up negatives", "Band assisted pull-ups"],
+    "jumping pull up": ["Ring rows", "Slow jumping pull-up negatives"],
+    "chest-to-bar pull up": ["Strict pull-ups, pulling to the chest", "Band assisted chest-to-bar pull-ups"],
+    "jumping chest-to-bar pull up": ["Jumping pull-ups, pulling high to the chest"],
+    "bar muscle up": ["Strict chest-to-bar pull-ups and strict bar dips", "Kipping swing with a high pull to the hips, then low bar transition drills"],
+    "ring muscle up": ["Strict ring pull-ups to the chest and ring dips", "Low ring false grip transition drills"],
+    "burpee": ["Step back burpees at a steady pace, quality reps"],
+    "burpees": ["Step back burpees at a steady pace, quality reps"],
+    "burpee box jump overs": ["Step down box jumps, then burpee and jump over a low box"],
+    "burpees over the bar": ["Burpees with a line hop, then a low bar jump"],
+    "handstand push up": ["Pike push-ups with feet elevated", "Box pike push-ups to a mat"],
+    "strict handstand push up": ["Wall walks and pike holds", "Slow pike push-ups with feet elevated"],
+    "handstand walk": ["Wall facing handstand holds with shoulder taps", "Hollow body holds and handstand weight shifts"],
+    "ring dip": ["Ring support holds and low ring dips with feet on the floor", "Strict bar or box dips"],
+    "toes-to-bar": ["Hanging knee raises and hollow rocks", "Kipping swing practice with straight leg raises"],
+    "hanging knee raises": ["Dead hang and active hang holds", "Hollow body holds"],
+    "pistol squats": ["Box pistol: sit to a box on one leg", "Assisted pistol with a band or TRX"],
+    "box jumps": ["Step ups to a box with a soft landing", "Low box jumps"],
+    "box step ups (unweighted)": ["Slow step ups to a lower box"],
+    "push up": ["Incline push-ups", "Slow plank to push-up negatives"],
+    "rowing": ["Rowing technique drills: pauses at the catch and the finish", "Easy steady row for 2 to 5 minutes"],
+    "airbike": ["Easy steady Airbike for 10 to 20 minutes to build an aerobic base"],
+    "running": ["Run and walk intervals building to a continuous easy run"],
+    "single unders": ["Rope turn drills, then single jumps"],
+    "double unders": ["Fast single unders, then double bounce jumps", "Rope turn drills with a double bounce"],
+    "crossovers": ["Slow single unders with crossed arms"]
+  };
+  function assistFor(m, touch) {
+    var opts = (ASSIST[m.name.toLowerCase().trim()] || []).slice();
+    if (m.score === 3 || !opts.length) opts.unshift(null);
+    var pick = opts[touch % opts.length];
+    return pick;
+  }
   var DAY_CAP = { p: 2, s: 2, c: 3 };
   function weekDays() {
     var P = state.profile, now = parseInt(P.nowDays, 10), can = parseInt(P.canDays, 10);
@@ -1416,7 +1472,8 @@ body.pdf-mode #pdf-busy { display: flex; }
     return d >= 1 ? Math.min(d, 7) : 0;
   }
   function mkey(m) { return (m.sec || "") + "|" + m.name; }
-  function buildWeek(r, D, prior) {
+  function buildWeek(r, D, prior, counters) {
+    counters = counters || {};
     var days = []; for (var i = 0; i < D; i++) days.push({ p: [], s: [], c: [] });
     var deferred = [];
     function freq(lane, m) {
@@ -1436,7 +1493,13 @@ body.pdf-mode #pdf-busy { display: flex; }
           }
           if (ok && (best === null || cost < best.cost)) best = { cost: cost, days: chosen };
         }
-        if (best) { best.days.forEach(function (di) { days[di][lane].push(m); }); return f; }
+        if (best) {
+          best.days.sort(function (a, b) { return a - b; }).forEach(function (di) {
+            var tk = counters[mkey(m)] || 0; counters[mkey(m)] = tk + 1;
+            days[di][lane].push({ m: m, a: lane === "p" ? assistFor(m, tk) : null });
+          });
+          return f;
+        }
       }
       deferred.push({ m: m, lane: lane });
       return 0;
@@ -1455,13 +1518,13 @@ body.pdf-mode #pdf-busy { display: flex; }
     return '<div class="week-days">' + w.days.map(function (d, i) {
       var cur = now >= 1 && i >= now ? '<span class="xtra">extra</span>' : "";
       return '<div class="daycol"><div class="day-h">Day ' + (i + 1) + cur + '</div>' + ["p", "s", "c"].map(function (k) {
-        return '<div class="day-l"><span class="chip ' + LAB[k][1] + '">' + LAB[k][0] + '</span>' + (d[k].length ? '<ul>' + d[k].map(function (m) { return '<li><span>' + esc(m.name) + (m.cat && /barbell|dumbbell/i.test(m.cat) ? ' <small>' + esc(m.cat.replace(/ barbell/i, "")) + '</small>' : "") + '</span><b class="n band-' + bandOf(m.score) + '">' + m.score + '</b></li>'; }).join("") + '</ul>' : '<span class="none">–</span>') + '</div>';
+        return '<div class="day-l"><span class="chip ' + LAB[k][1] + '">' + LAB[k][0] + '</span>' + (d[k].length ? '<ul>' + d[k].map(function (e) { var m = e.m, cat = m.cat && /barbell|dumbbell/i.test(m.cat) ? ' <small>' + esc(m.cat.replace(/ barbell/i, "")) + '</small>' : ""; return '<li><span>' + (e.a ? esc(e.a) + ' <small class="for">for ' + esc(m.name) + '</small>' : esc(m.name) + cat) + '</span><b class="n band-' + bandOf(m.score) + '">' + m.score + '</b></li>'; }).join("") + '</ul>' : '<span class="none">–</span>') + '</div>';
       }).join("") + '</div>';
     }).join("") + '</div>';
   }
   function leftoverHtml(w1, w2, D) {
     var seen = {};
-    [w1, w2].forEach(function (w) { w.days.forEach(function (d) { ["p", "s", "c"].forEach(function (k) { d[k].forEach(function (m) { seen[mkey(m)] = true; }); }); }); });
+    [w1, w2].forEach(function (w) { w.days.forEach(function (d) { ["p", "s", "c"].forEach(function (k) { d[k].forEach(function (e) { seen[mkey(e.m)] = true; }); }); }); });
     var w = { deferred: w1.deferred.filter(function (x) { return !seen[mkey(x.m)]; }) };
     var dn = w.deferred.filter(function (x) { return x.lane !== "c"; }), dc = w.deferred.filter(function (x) { return x.lane === "c"; });
     var nm = function (x) { return esc(x.m.name) + (x.m.cat && /barbell|dumbbell/i.test(x.m.cat) ? " [" + esc(x.m.cat.replace(/ barbell/i, "")) + "]" : "") + " (" + x.m.score + ")"; };
@@ -1475,10 +1538,10 @@ body.pdf-mode #pdf-busy { display: flex; }
     var h = '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 1</h3>';
     if (!D) return h.replace(" · Week 1", "") + '<p class="empty">Add how many sessions a week you train now, and how many you could train, to see a day by day breakdown.</p></div>';
     if (!r.p.length && !r.s.length && !r.c6.length && !r.c7.length) return h.replace(" · Week 1", "") + '<p class="empty">Nothing is rated 7 or below. Normal classes are enough for now.</p></div>';
-    var w1 = buildWeek(r, D), prior = {};
+    var counters = {}, w1 = buildWeek(r, D, null, counters), prior = {};
     w1.deferred.forEach(function (x) { prior[mkey(x.m)] = true; });
-    var w2 = buildWeek(r, D, prior);
-    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can.</p>' + dayCards(w1, now) + '</div>';
+    var w2 = buildWeek(r, D, prior, counters);
+    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can. For the lowest scores, Practice lists an assistance exercise or skill that builds toward the movement, with the movement in small text. These are suggestions for a coach to confirm.</p>' + dayCards(w1, now) + '</div>';
     h += '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 2</h3><p class="fine">Week 2 brings in movements that did not fit in week 1. Practice movements rated 0 to 2 stay in both weeks. Repeat the two weeks as a fortnight cycle until scores change.</p>' + dayCards(w2, now) + leftoverHtml(w1, w2, D) + '</div>';
     return h;
   }
