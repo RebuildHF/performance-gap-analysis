@@ -1415,7 +1415,8 @@ body.pdf-mode #pdf-busy { display: flex; }
     var d = Math.max(isNaN(now) ? 0 : now, isNaN(can) ? 0 : can);
     return d >= 1 ? Math.min(d, 7) : 0;
   }
-  function buildWeek(r, D) {
+  function mkey(m) { return (m.sec || "") + "|" + m.name; }
+  function buildWeek(r, D, prior) {
     var days = []; for (var i = 0; i < D; i++) days.push({ p: [], s: [], c: [] });
     var deferred = [];
     function freq(lane, m) {
@@ -1440,30 +1441,46 @@ body.pdf-mode #pdf-busy { display: flex; }
       deferred.push({ m: m, lane: lane });
       return 0;
     }
-    sorted(r.p).forEach(function (m) { place("p", m); });
-    sorted(r.s).forEach(function (m) { place("s", m); });
-    sorted(r.c6).concat(sorted(r.c7)).forEach(function (m) { place("c", m); });
+    function order(list, lane) {
+      var rank = function (m) { return prior ? (lane === "p" && m.score <= 2 ? 0 : prior[mkey(m)] ? 1 : 2) : 0; };
+      return list.slice().sort(function (a, b) { return rank(a) - rank(b) || a.score - b.score; });
+    }
+    order(r.p, "p").forEach(function (m) { place("p", m); });
+    order(r.s, "s").forEach(function (m) { place("s", m); });
+    order(sorted(r.c6).concat(sorted(r.c7)), "c").forEach(function (m) { place("c", m); });
     return { days: days, deferred: deferred };
   }
-  function weekPlanHtml(r) {
-    var D = weekDays(), P = state.profile, now = parseInt(P.nowDays, 10);
-    var h = '<div class="card ctx weekplan"><h3>Weekly breakdown</h3>';
-    if (!D) return h + '<p class="empty">Add how many sessions a week you train now, and how many you could train, to see a day by day breakdown.</p></div>';
-    if (!r.p.length && !r.s.length && !r.c6.length && !r.c7.length) return h + '<p class="empty">Nothing is rated 7 or below. Normal classes are enough for now.</p></div>';
-    var w = buildWeek(r, D);
-    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can.</p>';
+  function dayCards(w, now) {
     var LAB = { p: ["Practice", "band-p"], s: ["Train", "band-s"], c: ["Condition", "band-c"] };
-    h += '<div class="week-days">' + w.days.map(function (d, i) {
-      var cur = now >= 1 && i < now ? "" : (now >= 1 ? '<span class="xtra">extra</span>' : "");
+    return '<div class="week-days">' + w.days.map(function (d, i) {
+      var cur = now >= 1 && i >= now ? '<span class="xtra">extra</span>' : "";
       return '<div class="daycol"><div class="day-h">Day ' + (i + 1) + cur + '</div>' + ["p", "s", "c"].map(function (k) {
         return '<div class="day-l"><span class="chip ' + LAB[k][1] + '">' + LAB[k][0] + '</span>' + (d[k].length ? '<ul>' + d[k].map(function (m) { return '<li><span>' + esc(m.name) + (m.cat && /barbell|dumbbell/i.test(m.cat) ? ' <small>' + esc(m.cat.replace(/ barbell/i, "")) + '</small>' : "") + '</span><b class="n band-' + bandOf(m.score) + '">' + m.score + '</b></li>'; }).join("") + '</ul>' : '<span class="none">–</span>') + '</div>';
       }).join("") + '</div>';
     }).join("") + '</div>';
+  }
+  function leftoverHtml(w1, w2, D) {
+    var seen = {};
+    [w1, w2].forEach(function (w) { w.days.forEach(function (d) { ["p", "s", "c"].forEach(function (k) { d[k].forEach(function (m) { seen[mkey(m)] = true; }); }); }); });
+    var w = { deferred: w1.deferred.filter(function (x) { return !seen[mkey(x.m)]; }) };
     var dn = w.deferred.filter(function (x) { return x.lane !== "c"; }), dc = w.deferred.filter(function (x) { return x.lane === "c"; });
     var nm = function (x) { return esc(x.m.name) + (x.m.cat && /barbell|dumbbell/i.test(x.m.cat) ? " [" + esc(x.m.cat.replace(/ barbell/i, "")) + "]" : "") + " (" + x.m.score + ")"; };
-    if (dn.length) h += '<div class="sub-h">Next in line, once the movements above lift</div><p class="fine">' + dn.map(nm).join(", ") + '. These do not fit in ' + D + ' session' + (D === 1 ? "" : "s") + ' without crowding the week. Rotate them in as scores improve, or add a session.</p>';
-    if (dc.length) h += '<div class="sub-h">Condition, not scheduled this week</div><p class="fine">' + dc.map(nm).join(", ") + '. Rotate through these in classes and WODs over the coming weeks.</p>';
-    return h + '</div>';
+    var h = "";
+    if (dn.length) h += '<div class="sub-h">Not scheduled in these two weeks</div><p class="fine">' + dn.map(nm).join(", ") + '. These do not fit in ' + D + ' session' + (D === 1 ? "" : "s") + ' a week without crowding it. Rotate them in as scores improve, or add a session.</p>';
+    if (dc.length) h += '<div class="sub-h">Condition, not scheduled in these two weeks</div><p class="fine">' + dc.map(nm).join(", ") + '. Rotate through these in classes and WODs.</p>';
+    return h;
+  }
+  function weekPlanHtml(r) {
+    var D = weekDays(), P = state.profile, now = parseInt(P.nowDays, 10);
+    var h = '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 1</h3>';
+    if (!D) return h.replace(" · Week 1", "") + '<p class="empty">Add how many sessions a week you train now, and how many you could train, to see a day by day breakdown.</p></div>';
+    if (!r.p.length && !r.s.length && !r.c6.length && !r.c7.length) return h.replace(" · Week 1", "") + '<p class="empty">Nothing is rated 7 or below. Normal classes are enough for now.</p></div>';
+    var w1 = buildWeek(r, D), prior = {};
+    w1.deferred.forEach(function (x) { prior[mkey(x.m)] = true; });
+    var w2 = buildWeek(r, D, prior);
+    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can.</p>' + dayCards(w1, now) + '</div>';
+    h += '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 2</h3><p class="fine">Week 2 brings in movements that did not fit in week 1. Practice movements rated 0 to 2 stay in both weeks. Repeat the two weeks as a fortnight cycle until scores change.</p>' + dayCards(w2, now) + leftoverHtml(w1, w2, D) + '</div>';
+    return h;
   }
 
   function renderPlan() {
