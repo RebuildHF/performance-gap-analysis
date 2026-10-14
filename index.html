@@ -255,6 +255,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
 .badge { font-family: var(--font-display); font-size: .85rem; letter-spacing: .08em; text-transform: uppercase; background: var(--accent); color: var(--accent-ink); border-radius: 5px; padding: 2px 8px; font-weight: 700; }
 .auth label { display: block; margin: 8px 0; font-size: .88rem; font-weight: 600; }
 .auth input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font: inherit; font-weight: 400; margin-top: 3px; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
 .auth-msg { color: var(--muted); font-size: .86rem; margin: 8px 0 0; }
 .saved ul { list-style: none; padding: 0; margin: 10px 0 0; }
 .saved li { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: .9rem; }
@@ -517,7 +518,7 @@ body.pdf-mode #pdf-busy { display: flex; }
   var SUPABASE_KEY = "sb_publishable_rRdAofqZIIiqneZTlAcKRQ_EWjDrPbw"; /* publishable key: safe in the browser, access is limited by row level security */
   var sb = null;
   try { if (window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) {}
-  var auth = { user: null, uid: null, ready: false, tier2: false, msg: "", saveMsg: "", list: [], currentId: null };
+  var auth = { recovery: false, user: null, uid: null, ready: false, tier2: false, msg: "", saveMsg: "", list: [], currentId: null };
 
   function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
 
@@ -1313,6 +1314,7 @@ body.pdf-mode #pdf-busy { display: flex; }
     else body = '<form id="auth-form" class="auth" novalidate><label>Email<input type="email" id="auth-email" autocomplete="email"></label>' +
       '<label>Password<input type="password" id="auth-pass" autocomplete="current-password"></label>' +
       '<div class="plan-actions"><button type="submit" class="btn primary" id="btn-signin">Sign in</button><button type="button" class="btn" id="btn-signup">Create account</button></div>' +
+      '<p class="fine"><button type="button" class="linkbtn" id="btn-forgot">Forgot your password?</button></p>' +
       '<p class="auth-msg" id="auth-msg" role="status">' + esc(auth.msg) + '</p></form>';
     return '<div class="card lock"><div class="lock-head">' +
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' +
@@ -1347,6 +1349,33 @@ body.pdf-mode #pdf-busy { display: flex; }
       else if (kind === "up" && !res.data.session) setAuthMsg("Check your email to confirm your account, then sign in.");
       else setAuthMsg("");
     }).catch(function () { setAuthMsg("Something went wrong. Please try again."); });
+  }
+  function forgotPassword() {
+    var em = ($("auth-email") && $("auth-email").value || "").trim();
+    if (!em) { setAuthMsg("Enter your email above, then choose Forgot your password."); return; }
+    setAuthMsg("Sending…");
+    sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + location.pathname }).then(function (res) {
+      if (res && res.error) setAuthMsg(res.error.message);
+      else setAuthMsg("If that email has an account, a reset link is on its way. Check your inbox and spam folder.");
+    }).catch(function () { setAuthMsg("Something went wrong. Please try again."); });
+  }
+  function recoverHtml() {
+    return '<div class="card lock"><div class="lock-head"><h3>Set a new password</h3></div>' +
+      '<form id="recover-form" class="auth" novalidate><label>New password<input type="password" id="rec-pass" autocomplete="new-password"></label>' +
+      '<label>Confirm new password<input type="password" id="rec-pass2" autocomplete="new-password"></label>' +
+      '<div class="plan-actions"><button type="submit" class="btn primary">Save new password</button></div>' +
+      '<p class="auth-msg" id="rec-msg" role="status"></p></form></div>';
+  }
+  function setNewPassword() {
+    var a = $("rec-pass").value, b = $("rec-pass2").value, msg = $("rec-msg");
+    if (a.length < 6) { msg.textContent = "Use at least 6 characters."; return; }
+    if (a !== b) { msg.textContent = "The two passwords do not match."; return; }
+    msg.textContent = "Saving…";
+    sb.auth.updateUser({ password: a }).then(function (res) {
+      if (res && res.error) { msg.textContent = res.error.message; return; }
+      auth.recovery = false; auth.saveMsg = "Password updated";
+      renderPlan();
+    }).catch(function () { msg.textContent = "Something went wrong. Please try again."; });
   }
   function loadList() {
     return sb.from("assessments").select("id,label,mode,updated_at").order("updated_at", { ascending: false }).limit(50)
@@ -1401,6 +1430,8 @@ body.pdf-mode #pdf-busy { display: flex; }
   }
   function bindAuth() {
     var f = $("auth-form"); if (f) f.addEventListener("submit", function (e) { e.preventDefault(); doAuth("in"); });
+    var fg = $("btn-forgot"); if (fg) fg.addEventListener("click", forgotPassword);
+    var rf = $("recover-form"); if (rf) rf.addEventListener("submit", function (e) { e.preventDefault(); setNewPassword(); });
     var su = $("btn-signup"); if (su) su.addEventListener("click", function () { doAuth("up"); });
     var so = $("btn-signout"); if (so) so.addEventListener("click", function () { sb.auth.signOut(); });
     var sv = $("btn-save"); if (sv) sv.addEventListener("click", saveAssessment);
@@ -1614,6 +1645,7 @@ body.pdf-mode #pdf-busy { display: flex; }
 
     t2 += profileHtml();
     t2 += '<div class="plan-actions"><button type="button" class="btn primary" id="btn-copy">Save Summary (PDF)</button><span class="copied" id="copied" role="status"></span></div>';
+    if (auth.recovery && auth.user) h += recoverHtml();
     h += tier1Html(r);
     if (auth.tier2) h += '<div class="card t2-head"><h2>In Depth Breakdown</h2><span class="badge">Free during trial</span><button type="button" class="btn" id="btn-signout">Sign out</button></div>' + savedHtml() + t2;
     else h += lockHtml();
@@ -1840,7 +1872,13 @@ body.pdf-mode #pdf-busy { display: flex; }
   $("banner").hidden = !state.example;
   document.body.setAttribute("data-view", view);
   setMode(state.mode === "scaled" ? "scaled" : "rx");
-  if (sb) sb.auth.onAuthStateChange(function (ev, session) { setTimeout(function () { handleAuth(ev, session); }, 0); });
+  if (sb) sb.auth.onAuthStateChange(function (ev, session) {
+    setTimeout(function () {
+      if (ev === "PASSWORD_RECOVERY") { auth.recovery = true; setView("plan"); }
+      handleAuth(ev, session);
+      if (ev === "PASSWORD_RECOVERY") renderPlan();
+    }, 0);
+  });
 })();
 </script>
 
