@@ -1723,7 +1723,7 @@ body.pdf-mode #pdf-busy { display: flex; }
       profileHtml(true) + parts[0] + '</div>';
     h += '<div class="pp pbreak">' + parts[1] + '</div>';
     h += '<div class="pp pbreak">' + d.week + '<div class="lane-cols">' + d.lanes + '</div></div>';
-    h += '<div class="pp pbreak">' + d.plan + '</div>';
+    if (weekDays() > 0) h += '<div class="pp pbreak">' + d.plan + '</div>';
     h += '<div class="pp pbreak">' + ratiosPrintHtml() + themeCard("Weightlifting summary", wlThemes(r)) + '</div>';
     h += '<div class="pp pbreak">' + themeCard("Gymnastics summary", gymThemes(r)) + metPrintHtml(r) + '<div class="card ctx diag"><h3>Before programming a low score</h3><ul>' +
       '<li>Has the strength and mobility: it is a <b>skill</b> issue.</li><li>Has the skill and mobility: it is a <b>strength</b> issue.</li>' +
