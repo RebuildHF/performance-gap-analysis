@@ -1307,10 +1307,12 @@ body.pdf-mode #pdf-busy { display: flex; }
     return h;
   }
 
+  var PAY_LINK = "https://buy.stripe.com/7sY28r0mDg1jcpMgvY2ZO02";
+  function payUrl() { return PAY_LINK + "?client_reference_id=" + encodeURIComponent(auth.user.id) + "&prefilled_email=" + encodeURIComponent(auth.user.email || ""); }
   function lockHtml() {
     var body;
     if (!sb) body = '<p class="fine">Sign-in is unavailable right now because the sign-in service did not load. Check your connection and reload the page.</p>';
-    else if (auth.user) body = '<p class="fine">Signed in as <b>' + esc(auth.user.email) + '</b>. The In Depth Breakdown is not unlocked on this account yet. Contact Rebuild to unlock it.</p><div class="plan-actions"><button type="button" class="btn" id="btn-signout">Sign out</button></div>';
+    else if (auth.user) body = '<p class="fine">Signed in as <b>' + esc(auth.user.email) + '</b>. The In Depth Breakdown is not unlocked on this account yet.</p><div class="plan-actions"><a class="btn primary" id="btn-pay" href="' + esc(payUrl()) + '">Unlock the In Depth Breakdown</a><button type="button" class="btn" id="btn-signout">Sign out</button></div><p class="fine">After you pay, come back to this page and refresh. Unlocking can take a minute. Already paid and still locked? Contact Rebuild.</p>';
     else body = '<form id="auth-form" class="auth" novalidate><label>Email<input type="email" id="auth-email" autocomplete="email"></label>' +
       '<label>Password<input type="password" id="auth-pass" autocomplete="current-password"></label>' +
       '<div class="plan-actions"><button type="submit" class="btn primary" id="btn-signin">Sign in</button><button type="button" class="btn" id="btn-signup">Create account</button></div>' +
