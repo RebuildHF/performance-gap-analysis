@@ -297,6 +297,7 @@ fieldset.qq legend { font-size: .9rem; padding: 0; margin-bottom: 3px; font-weig
   --bg: #eef1f4; --surface: #ffffff; --surface-2: #f5f7f9; --ink: #16222c; --muted: #5b6a77; --line: #d5dbe1; --accent: #135d73; --accent-ink: #ffffff;
   --p-bg: #fbe3e1; --p-fg: #8f2a22; --p-solid: #c8453b; --s-bg: #fbefcb; --s-fg: #7a5700; --s-solid: #d69a12;
   --c-bg: #ddf0e0; --c-fg: #1f6b35; --c-solid: #3e9a5b; --k-bg: #e3e8ed; --k-fg: #566674; --k-solid: #8a99a6; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 10000; max-width: 90vw; padding: 12px 18px; border-radius: 10px; background: #1f2a33; color: #fff; font-size: .95rem; font-family: var(--font-body); box-shadow: 0 4px 18px rgba(0,0,0,.35); display: none; text-align: center; }
 #pdf-busy { position: fixed; inset: 0; z-index: 9999; background: #0f161c; color: #fff; display: none; align-items: center; justify-content: center; font-size: 1.1rem; font-family: var(--font-body); }
 body.pdf-mode #pdf-busy { display: flex; }
 @media print {
@@ -1402,7 +1403,7 @@ body.pdf-mode #pdf-busy { display: flex; }
   function saveAssessment() {
     var snap = JSON.parse(JSON.stringify(state)); snap.example = false;
     var row = { mode: state.mode, label: (state.name || "Assessment") + " · " + (state.mode === "rx" ? "Rx" : "Scaled"), data: snap };
-    var done = function (msg) { auth.saveMsg = msg; renderPlan(); };
+    var done = function (msg) { auth.saveMsg = msg; renderPlan(); toast(msg === "Saved" ? "Assessment saved to your account." : msg, 6000); };
     var insert = function () {
       return sb.from("assessments").insert(row).select("id").then(function (r) {
         if (r.error) return done("Could not save: " + r.error.message);
@@ -1740,6 +1741,12 @@ body.pdf-mode #pdf-busy { display: flex; }
       document.head.appendChild(el);
     });
   }
+  function toast(t, ms) {
+    var el = document.getElementById("toast");
+    if (!el) { el = document.createElement("div"); el.id = "toast"; el.setAttribute("role", "status"); document.body.appendChild(el); }
+    el.textContent = t; el.style.display = "block";
+    clearTimeout(toast.t); toast.t = setTimeout(function () { el.style.display = "none"; }, ms || 5000);
+  }
   function useDesktopPrint() {
     var ua = navigator.userAgent || "";
     var inApp = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|; wv\)|WebView|CriOS|FxiOS|EdgiOS/i.test(ua);
@@ -1772,6 +1779,7 @@ body.pdf-mode #pdf-busy { display: flex; }
     var fail = function (e) {
       document.body.classList.remove("pdf-mode");
       msg.textContent = "Could not create the PDF here. Try again on a computer.";
+      toast("Could not create the PDF here. Check your connection and try again, or use a computer.", 8000);
       setTimeout(function () { msg.textContent = ""; }, 5000);
       if (window.console) console.error(e);
     };
@@ -1794,6 +1802,7 @@ body.pdf-mode #pdf-busy { display: flex; }
         document.body.classList.remove("pdf-mode");
         pdf.save("Performance Gap Analysis - " + nm + ".pdf");
         msg.textContent = "PDF saved";
+        toast("PDF saved. Check your Downloads or Files app.", 6000);
         setTimeout(function () { msg.textContent = ""; }, 3000);
       });
     }).catch(fail);
