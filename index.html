@@ -174,6 +174,10 @@ ul.mv .n { width: 1.9rem; text-align: center; border-radius: 5px; font-weight: 6
 .day-l ul { list-style: none; margin: 3px 0 0; padding: 0; }
 .day-l li { font-size: .82rem; margin: 2px 0; display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
 .day-l .n { font-size: .74rem; padding: 0 5px; border-radius: 4px; flex: none; }
+.lm { font-style: normal; font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 0 5px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; vertical-align: 1px; }
+.lchm { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 6px 14px; margin: 8px 0 4px; font-size: .78rem; color: var(--muted); }
+.lchm dt { display: inline; } .lchm dd { display: inline; margin: 0 0 0 4px; }
+ul.themes { margin: 4px 0 0; padding-left: 18px; font-size: .86rem; } ul.themes li { margin: 4px 0; }
 .day-l small.for { display: block; }
 .day-l small { color: var(--muted); font-size: .7rem; }
 .day-l .none { color: var(--muted); margin-left: 6px; }
@@ -1445,61 +1449,133 @@ body.pdf-mode #pdf-busy { display: flex; }
 
   /* ---------- weekly breakdown ---------- */
 
-  /* Assistance exercises and skills that build toward a movement, used for low-scoring (practice) movements in the weekly breakdown.
-     Keys are lower case movement names. These are starting suggestions for a coach to confirm and edit. */
-  var ASSIST = {
-    "front squat": ["Tempo front squat (3 s down, pause at the bottom)", "Front rack holds with front rack mobility work"],
-    "front squats": ["Tempo goblet squat (3 s down, pause at the bottom)", "Dumbbell front rack holds"],
-    "thruster": ["Front squat and push press as separate reps", "Pause front squat, then strict press"],
-    "squat clean": ["Clean pull, then front squat", "Tall clean, then clean from above the knee with a pause"],
-    "power clean": ["Clean pull from the knee, then from the floor", "Hang power clean from above the knee"],
-    "overhead squat": ["Overhead squat with a PVC pipe, pause at the bottom", "Snatch balance"],
-    "squat snatch": ["Snatch balance and overhead squat", "Snatch pull, then hang snatch from above the knee"],
-    "power snatch": ["Snatch high pull and snatch pull", "Hang power snatch from above the knee"],
-    "push press": ["Strict press, then dip and drive practice with an empty bar", "Push press with a pause at the bottom of the dip"],
-    "push jerk": ["Dip and drive from the rack with a pause in the dip", "Push press into a quick re-dip, light"],
-    "deadlift": ["Tempo Romanian deadlift", "Paused deadlift, light"],
-    "front rack walking lunge": ["Front rack split squat", "Goblet walking lunge"],
-    "overhead walking lunge": ["Overhead split squat, light", "Single arm overhead carry"],
-    "cleans (any variation)": ["Dumbbell high pull, then hang clean"],
-    "snatches (any variation)": ["Single arm dumbbell high pull, then hang snatch"],
-    "push press/jerk": ["Strict dumbbell press, then dip and drive practice"],
-    "lunge/step up": ["Slow step up to a low box", "Split squat"],
-    "wall balls": ["Goblet squat, tempo", "Front squat to a push press, then throw to a lower target"],
-    "pull-up": ["Ring rows and slow pull-up negatives", "Band assisted pull-ups"],
-    "jumping pull up": ["Ring rows", "Slow jumping pull-up negatives"],
-    "chest-to-bar pull up": ["Strict pull-ups, pulling to the chest", "Band assisted chest-to-bar pull-ups"],
-    "jumping chest-to-bar pull up": ["Jumping pull-ups, pulling high to the chest"],
-    "bar muscle up": ["Strict chest-to-bar pull-ups and strict bar dips", "Kipping swing with a high pull to the hips, then low bar transition drills"],
-    "ring muscle up": ["Strict ring pull-ups to the chest and ring dips", "Low ring false grip transition drills"],
-    "burpee": ["Step back burpees at a steady pace, quality reps"],
-    "burpees": ["Step back burpees at a steady pace, quality reps"],
-    "burpee box jump overs": ["Step down box jumps, then burpee and jump over a low box"],
-    "burpees over the bar": ["Burpees with a line hop, then a low bar jump"],
-    "handstand push up": ["Pike push-ups with feet elevated", "Box pike push-ups to a mat"],
-    "strict handstand push up": ["Wall walks and pike holds", "Slow pike push-ups with feet elevated"],
-    "handstand walk": ["Wall facing handstand holds with shoulder taps", "Hollow body holds and handstand weight shifts"],
-    "ring dip": ["Ring support holds and low ring dips with feet on the floor", "Strict bar or box dips"],
-    "toes-to-bar": ["Hanging knee raises and hollow rocks", "Kipping swing practice with straight leg raises"],
-    "hanging knee raises": ["Dead hang and active hang holds", "Hollow body holds"],
-    "pistol squats": ["Box pistol: sit to a box on one leg", "Assisted pistol with a band or TRX"],
-    "box jumps": ["Step ups to a box with a soft landing", "Low box jumps"],
-    "box step ups (unweighted)": ["Slow step ups to a lower box"],
-    "push up": ["Incline push-ups", "Slow plank to push-up negatives"],
-    "rowing": ["Rowing technique drills: pauses at the catch and the finish", "Easy steady row for 2 to 5 minutes"],
-    "airbike": ["Easy steady Airbike for 10 to 20 minutes to build an aerobic base"],
-    "running": ["Run and walk intervals building to a continuous easy run"],
-    "single unders": ["Rope turn drills, then single jumps"],
-    "double unders": ["Fast single unders, then double bounce jumps", "Rope turn drills with a double bounce"],
-    "crossovers": ["Slow single unders with crossed arms"]
+  /* Movement themes. A pull-up is a pull-up whether it is on a bar or rings, so movements in a theme share a weekly practice budget
+     and one shared strength solution. Each theme lists suggestions in four modes (Lift, Carry, Hold, Mobilise).
+     These are starting suggestions for a coach to confirm and edit. joints = words in the mobility joint names that matter for the theme. */
+  var THEME_RULES = [
+    [/handstand|hspu/, "inverted"], [/muscle.?up|pull.?up|chin/, "pull"], [/toes|knee raise|hanging/, "hang"], [/\bdips?\b/, "dip"],
+    [/push.?up/, "push"], [/snatch|overhead squat/, "snatch"], [/clean/, "clean"], [/press|jerk|overhead/, "overhead"],
+    [/thruster|squat|lunge|step up|wall ball|pistol/, "squat"], [/deadlift/, "hinge"], [/burpee/, "burpee"], [/jump/, "jump"],
+    [/unders|crossover|rope|skip/, "rope"], [/row|bike|run|ski/, "engine"]
+  ];
+  function themeOf(name) {
+    var n = (name || "").toLowerCase();
+    for (var i = 0; i < THEME_RULES.length; i++) if (THEME_RULES[i][0].test(n)) return THEME_RULES[i][1];
+    return "other";
+  }
+  var THEMES = {
+    pull: { label: "Pulling", joints: ["Shoulder", "Elbow", "Upper Back"],
+      shared: "Strict pull-ups and ring rows, then weighted pull-ups once you can do about 8 unbroken. This pulling strength carries to every pull-up variation and the pull in a muscle-up.",
+      H: ["Dead hang and active hang holds, 20 to 30 s", "Chin-over-bar hold at the top of a pull-up, 3 to 5 s"],
+      C: ["Ring rows with the feet elevated", "Slow pull-up negatives, 5 s down", "Pull-ups with a pause at the chin and a controlled return"],
+      M: ["Lat stretch on a rack and thoracic extension over a roller", "Shoulder flexion with a band, overhead and behind"] },
+    inverted: { label: "Inverted pressing", joints: ["Shoulder", "Wrist", "Upper Back"],
+      shared: "Strict overhead pressing strength: strict press, pike holds and wall facing holds. This carries to handstand push-ups and handstand walking.",
+      H: ["Wall facing handstand hold, 20 to 40 s", "Pike hold with the feet on a box, 20 to 30 s", "Hollow body hold, 20 to 30 s"],
+      C: ["Slow pike push-ups with the feet elevated", "Wall walks with a pause at the top", "Wall facing shoulder taps and weight shifts"],
+      M: ["Shoulder flexion and wrist prep: wall slides, wrist rocks and thoracic extension", "Lat and thoracic stretch with the arms overhead"] },
+    hang: { label: "Hanging and trunk", joints: ["Shoulder", "Hip"],
+      shared: "Hollow body holds and hanging knee raises build the trunk and grip for toes-to-bar and every hanging movement.",
+      H: ["Hollow body hold, 20 to 30 s", "Active hang with the feet in front, 20 s"],
+      C: ["Hanging knee raises, slow", "Hollow rocks, then straight leg raises"],
+      M: ["Lat and thoracic stretch, hip flexor stretch"] },
+    dip: { label: "Dips", joints: ["Shoulder", "Elbow", "Wrist"],
+      shared: "Strict dips on bars or a box build the press for ring dips and the press-out of a muscle-up.",
+      H: ["Ring or bar support hold, 15 to 30 s", "Top of the dip hold, 3 to 5 s"],
+      C: ["Low ring dips with the feet on the floor", "Strict bar or box dips"],
+      M: ["Chest and shoulder stretch, scapula control drills"] },
+    push: { label: "Pushing", joints: ["Shoulder", "Wrist", "Elbow"],
+      shared: "Push-ups and strict pressing build the push for every pressing movement.",
+      H: ["Plank hold with the shoulders over the hands, 30 s"],
+      C: ["Incline push-ups", "Slow plank to push-up negatives"],
+      M: ["Thoracic and shoulder mobility, wrist prep"] },
+    snatch: { label: "Snatch and overhead squat", joints: ["Shoulder", "Wrist", "Upper Back", "Hip", "Ankle"],
+      shared: "Overhead squats and snatch pulls build the overhead position and the pull. They carry to every snatch variation.",
+      H: ["Overhead squat hold with a PVC pipe or empty bar, 5 s at the bottom", "Snatch grip balance hold, light"],
+      C: ["Snatch pull, then hang snatch from above the knee", "Overhead squat with a pause at the bottom", "Snatch balance"],
+      M: ["Overhead squat mobility: ankle, hip and thoracic extension", "Shoulder flexion with a bar and a lat stretch"] },
+    clean: { label: "Cleans", joints: ["Wrist", "Shoulder", "Upper Back", "Hip", "Ankle"],
+      shared: "Clean pulls and front squats build the pull and the catch for every clean variation.",
+      H: ["Front rack hold, 20 to 30 s", "Deadlift hold at the knee, light"],
+      C: ["Clean pull from the knee, then from the floor", "Tall clean, then hang clean from above the knee with a pause"],
+      M: ["Front rack mobility: lat, triceps and wrist stretch, thoracic extension", "Hip and ankle mobility for the catch"] },
+    overhead: { label: "Overhead pressing", joints: ["Shoulder", "Wrist", "Upper Back"],
+      shared: "Strict press and single arm overhead carries build the locked out overhead position and the drive into it.",
+      H: ["Overhead hold with a barbell or dumbbell, 20 s", "Bottom of the dip hold, 3 s"],
+      C: ["Single arm overhead carry", "Strict press, then dip and drive reps with a pause in the dip", "Overhead split squat, light"],
+      M: ["Thoracic extension and lat stretch, overhead reach with a band", "Wrist and shoulder flexion mobility"] },
+    squat: { label: "Squatting", joints: ["Hip", "Knee", "Ankle", "Upper Back"],
+      shared: "Tempo front squats and single leg work build the squat pattern for thrusters, wall balls, lunges and pistols.",
+      H: ["Front rack hold, 20 to 30 s", "Bottom of the squat hold, 10 s"],
+      C: ["Tempo front squat, 3 s down and a pause at the bottom", "Goblet squat with a pause", "Split squat or slow step ups"],
+      M: ["Ankle and hip mobility: knee-to-wall and deep squat holds", "Thoracic extension and front rack stretch"] },
+    hinge: { label: "Hinging", joints: ["Hip", "Lower Back", "Knee"],
+      shared: "Romanian deadlifts and paused deadlifts build the hinge for pulls from the floor.",
+      H: ["Deadlift hold at the knee, light, 10 s"],
+      C: ["Tempo Romanian deadlift", "Paused deadlift, light"],
+      M: ["Hip hinge drill with a dowel, hamstring and hip mobility"] },
+    burpee: { label: "Burpees", joints: ["Shoulder", "Hip", "Wrist"],
+      shared: "Push-ups and squats build both halves of the burpee.",
+      H: ["Plank and push-up bottom hold, 10 s"],
+      C: ["Step back burpees at a steady pace", "Burpees with a line hop"],
+      M: ["Deep squat to plank transitions, shoulder and hip mobility"] },
+    jump: { label: "Jumping and landing", joints: ["Ankle", "Knee", "Hip"],
+      shared: "Step ups and landing drills build the landing and the drive for every box jump.",
+      H: ["Landing position hold, 5 s", "Box sit and stand hold"],
+      C: ["Step down box jumps", "Low box jumps with soft landings"],
+      M: ["Ankle and hip mobility, calf stretch"] },
+    rope: { label: "Skipping", joints: ["Ankle", "Wrist"],
+      shared: "Calf strength and plenty of single unders build the rhythm for double unders and crossovers.",
+      H: ["Tall posture, small bounce on the spot, 30 s"],
+      C: ["Fast single unders", "Double bounce single unders", "Slow single unders with crossed arms"],
+      M: ["Calf and ankle mobility, wrist circles"] },
+    engine: { label: "Rowing, bike and running", joints: ["Hip", "Ankle"],
+      shared: "Easy steady aerobic work builds the base for every machine and running piece.",
+      H: ["Easy steady effort, 5 minutes with nasal breathing"],
+      C: ["Technique drills with pauses, then easy steady work", "Run and walk intervals building to a continuous easy effort"],
+      M: ["Hip and ankle mobility"] },
+    other: { label: "Other", joints: null, shared: "", H: [], C: [], M: [] }
   };
+  /* Movement specific suggestions that replace the theme ones. Keys are lower case movement names. */
+  var OVR = {
+    "ring muscle up": { H: ["False grip hang and ring support hold, 15 to 20 s"], C: ["Low ring false grip transition drills", "Strict ring pull-ups to the chest, then ring dips"], M: ["False grip wrist prep, lat and chest stretch"] },
+    "bar muscle up": { H: ["Chest-to-bar hold above the bar, 2 to 3 s", "Bar support hold, 20 s"], C: ["Kipping swing with a high pull to the hips, then low bar transition drills", "Strict chest-to-bar pull-ups and strict bar dips"] },
+    "handstand walk": { C: ["Wall facing shoulder taps and weight shifts", "Short heel-on-wall steps"], H: ["Wall facing handstand hold, 20 to 40 s", "Hollow body hold, 20 to 30 s"] },
+    "pistol squats": { H: ["Single leg box sit, hold the bottom 5 s"], C: ["Box pistol: sit to a box on one leg", "Assisted pistol with a band or TRX"], M: ["Ankle dorsiflexion and hip mobility, deep squat holds"] },
+    "thruster": { C: ["Front squat and push press as separate reps", "Pause front squat, then strict press"], H: ["Front rack hold, 20 s", "Overhead hold, 20 s"] },
+    "crossovers": { C: ["Slow single unders with crossed arms"] },
+    "overhead squat": { C: ["Overhead squat with a PVC pipe, pause at the bottom", "Snatch balance"] }
+  };
+  var MODE_NAME = { L: "Lift", C: "Carry", H: "Hold", M: "Mobilise" };
+  var LCHM_KEY = [
+    ["Lift", "Perform whole movements in training for conditioning sets, generally with full capability."],
+    ["Carry", "Add perturbation and variation without complexity, using loaded positions that feed forward into the full movement."],
+    ["Hold", "Enter the loading positions needed for the full movement. Ideal when developing capability and capacity is limited."],
+    ["Mobilise", "Improve access to general and specific positions through a range of active and passive activities."]
+  ];
+  function mobLimited(theme) {
+    var t = THEMES[theme];
+    return !!(t && t.joints && mobHits(t.joints, 5).hits.length);
+  }
+  /* Low scores lead with Hold, middling scores with Carry, higher scores with Lift. A limited joint puts Mobilise first. */
+  function modeSeq(m, theme) {
+    var s = m.score <= 1 ? ["H", "C", "M"] : m.score === 2 ? ["C", "H", "L"] : ["L", "C", "H"];
+    if (mobLimited(theme)) s = ["M"].concat(s.filter(function (x) { return x !== "M"; })).slice(0, 3);
+    return s;
+  }
+  var optCount = {};
   function assistFor(m, touch) {
-    var opts = (ASSIST[m.name.toLowerCase().trim()] || []).slice();
-    if (m.score === 3 || !opts.length) opts.unshift(null);
-    var pick = opts[touch % opts.length];
-    return pick;
+    var th = themeOf(m.name), nm = m.name.toLowerCase().trim(), seq = modeSeq(m, th);
+    for (var k = 0; k < seq.length; k++) {
+      var mode = seq[(touch + k) % seq.length];
+      if (mode === "L") return { mode: "L", a: null };
+      var opts = (OVR[nm] && OVR[nm][mode]) || THEMES[th][mode] || [];
+      if (opts.length) { var ck = th + "|" + mode, n = optCount[ck] || 0; optCount[ck] = n + 1; return { mode: mode, a: opts[n % opts.length] }; }
+    }
+    return { mode: "L", a: null };
   }
   var DAY_CAP = { p: 2, s: 2, c: 3 };
+  var THEME_CAP = 3; /* most practice touches per theme per week */
   function weekDays() {
     var P = state.profile, now = parseInt(P.nowDays, 10), can = parseInt(P.canDays, 10);
     var d = Math.max(isNaN(now) ? 0 : now, isNaN(can) ? 0 : can);
@@ -1509,13 +1585,13 @@ body.pdf-mode #pdf-busy { display: flex; }
   function buildWeek(r, D, prior, counters) {
     counters = counters || {};
     var days = []; for (var i = 0; i < D; i++) days.push({ p: [], s: [], c: [] });
-    var deferred = [];
+    var deferred = [], coveredNames = {};
     function freq(lane, m) {
-      var f = lane === "p" ? (D >= 5 ? 3 : 2) : lane === "s" ? (D >= 5 && m.score <= 4 ? 3 : 2) : (m.score <= 6 && D >= 4 ? 2 : 1);
+      var f = lane === "p" ? (m.score <= 1 ? 3 : m.score === 2 ? 2 : 1) : lane === "s" ? (D >= 5 && m.score <= 4 ? 3 : 2) : (m.score <= 6 && D >= 4 ? 2 : 1);
       return Math.min(f, D);
     }
-    function place(lane, m) {
-      var f0 = freq(lane, m);
+    function place(lane, m, fWant) {
+      var f0 = fWant || freq(lane, m), th = themeOf(m.name);
       for (var f = f0; f >= 1; f--) {
         var best = null;
         for (var off = 0; off < D; off++) {
@@ -1524,14 +1600,17 @@ body.pdf-mode #pdf-busy { display: flex; }
             var di = (off + Math.round(k * D / f)) % D;
             if (chosen.indexOf(di) >= 0 || days[di][lane].length >= DAY_CAP[lane]) { ok = false; break; }
             chosen.push(di); cost += days[di][lane].length + days[di].p.length + days[di].s.length + days[di].c.length;
+            if (lane === "p" && days[di].p.some(function (e) { return themeOf(e.m.name) === th; })) cost += 20;
           }
           if (ok && (best === null || cost < best.cost)) best = { cost: cost, days: chosen };
         }
         if (best) {
           best.days.sort(function (a, b) { return a - b; }).forEach(function (di) {
             var tk = counters[mkey(m)] || 0; counters[mkey(m)] = tk + 1;
-            days[di][lane].push({ m: m, a: lane === "p" ? assistFor(m, tk) : null });
+            var as = lane === "p" ? assistFor(m, tk) : { mode: null, a: null };
+            days[di][lane].push({ m: m, a: as.a, mode: as.mode });
           });
+          if (lane === "p") coveredNames[m.name.toLowerCase()] = true;
           return f;
         }
       }
@@ -1539,27 +1618,57 @@ body.pdf-mode #pdf-busy { display: flex; }
       return 0;
     }
     function order(list, lane) {
-      var rank = function (m) { return prior ? (lane === "p" && m.score <= 2 ? 0 : prior[mkey(m)] ? 1 : 2) : 0; };
+      var rank = function (m) { return prior ? (prior[mkey(m)] ? 0 : 1) : 0; };
       return list.slice().sort(function (a, b) { return rank(a) - rank(b) || a.score - b.score; });
     }
-    order(r.p, "p").forEach(function (m) { place("p", m); });
+    /* Practice: group by theme, give each movement in a theme one touch before any gets a second, keep each theme to THEME_CAP touches,
+       and treat the same movement at light and heavy loads as one. If the week has too few slots, trim repeats first, then the highest scores. */
+    var byTheme = {}, seenNm = {};
+    order(r.p, "p").forEach(function (m) {
+      var nm = m.name.toLowerCase();
+      if (seenNm[nm]) return; seenNm[nm] = true;
+      (byTheme[themeOf(m.name)] = byTheme[themeOf(m.name)] || []).push(m);
+    });
+    var demand = [];
+    Object.keys(byTheme).forEach(function (th) {
+      var list = byTheme[th], budget = THEME_CAP, t = list.map(function () { return 0; }), i, grew = true;
+      for (i = 0; i < list.length && budget > 0; i++) { t[i] = 1; budget--; }
+      while (budget > 0 && grew) {
+        grew = false;
+        for (i = 0; i < list.length && budget > 0; i++) if (t[i] > 0 && t[i] < freq("p", list[i])) { t[i]++; budget--; grew = true; }
+      }
+      list.forEach(function (m, j) { if (t[j] > 0) demand.push({ m: m, f: t[j] }); else deferred.push({ m: m, lane: "p" }); });
+    });
+    var slots = D * DAY_CAP.p, total = function () { return demand.reduce(function (a, d) { return a + d.f; }, 0); };
+    while (total() > slots) {
+      var pick = null;
+      demand.forEach(function (d) { if (d.f > 1 && (!pick || d.f > pick.f || (d.f === pick.f && d.m.score > pick.m.score))) pick = d; });
+      if (!pick) break;
+      pick.f--;
+    }
+    demand.sort(function (a, b) { return a.m.score - b.m.score; });
+    demand.forEach(function (d) { place("p", d.m, d.f); });
     order(r.s, "s").forEach(function (m) { place("s", m); });
     order(sorted(r.c6).concat(sorted(r.c7)), "c").forEach(function (m) { place("c", m); });
-    return { days: days, deferred: deferred };
+    return { days: days, deferred: deferred, coveredNames: coveredNames };
   }
   function dayCards(w, now) {
     var LAB = { p: ["Practice", "band-p"], s: ["Train", "band-s"], c: ["Condition", "band-c"] };
     return '<div class="week-days">' + w.days.map(function (d, i) {
       var cur = now >= 1 && i >= now ? '<span class="xtra">extra</span>' : "";
       return '<div class="daycol"><div class="day-h">Day ' + (i + 1) + cur + '</div>' + ["p", "s", "c"].map(function (k) {
-        return '<div class="day-l"><span class="chip ' + LAB[k][1] + '">' + LAB[k][0] + '</span>' + (d[k].length ? '<ul>' + d[k].map(function (e) { var m = e.m, cat = m.cat && /barbell|dumbbell/i.test(m.cat) ? ' <small>' + esc(m.cat.replace(/ barbell/i, "")) + '</small>' : ""; return '<li><span>' + (e.a ? esc(e.a) + ' <small class="for">for ' + esc(m.name) + '</small>' : esc(m.name) + cat) + '</span><b class="n band-' + bandOf(m.score) + '">' + m.score + '</b></li>'; }).join("") + '</ul>' : '<span class="none">–</span>') + '</div>';
+        return '<div class="day-l"><span class="chip ' + LAB[k][1] + '">' + LAB[k][0] + '</span>' + (d[k].length ? '<ul>' + d[k].map(function (e) {
+          var m = e.m, cat = m.cat && /barbell|dumbbell/i.test(m.cat) ? ' <small>' + esc(m.cat.replace(/ barbell/i, "")) + '</small>' : "";
+          var lm = e.mode ? '<i class="lm lm-' + e.mode + '">' + MODE_NAME[e.mode] + '</i> ' : "";
+          return '<li><span>' + lm + (e.a ? esc(e.a) + ' <small class="for">for ' + esc(m.name) + '</small>' : esc(m.name) + cat) + '</span><b class="n band-' + bandOf(m.score) + '">' + m.score + '</b></li>';
+        }).join("") + '</ul>' : '<span class="none">–</span>') + '</div>';
       }).join("") + '</div>';
     }).join("") + '</div>';
   }
   function leftoverHtml(w1, w2, D) {
-    var seen = {};
-    [w1, w2].forEach(function (w) { w.days.forEach(function (d) { ["p", "s", "c"].forEach(function (k) { d[k].forEach(function (e) { seen[mkey(e.m)] = true; }); }); }); });
-    var w = { deferred: w1.deferred.filter(function (x) { return !seen[mkey(x.m)]; }) };
+    var seen = {}, seenNm = {};
+    [w1, w2].forEach(function (w) { w.days.forEach(function (d) { ["p", "s", "c"].forEach(function (k) { d[k].forEach(function (e) { seen[mkey(e.m)] = true; if (k === "p") seenNm[e.m.name.toLowerCase()] = true; }); }); }); });
+    var w = { deferred: w1.deferred.filter(function (x) { return !seen[mkey(x.m)] && !(x.lane === "p" && seenNm[x.m.name.toLowerCase()]); }) };
     var dn = w.deferred.filter(function (x) { return x.lane !== "c"; }), dc = w.deferred.filter(function (x) { return x.lane === "c"; });
     var nm = function (x) { return esc(x.m.name) + (x.m.cat && /barbell|dumbbell/i.test(x.m.cat) ? " [" + esc(x.m.cat.replace(/ barbell/i, "")) + "]" : "") + " (" + x.m.score + ")"; };
     var h = "";
@@ -1567,16 +1676,35 @@ body.pdf-mode #pdf-busy { display: flex; }
     if (dc.length) h += '<div class="sub-h">Condition, not scheduled in these two weeks</div><p class="fine">' + dc.map(nm).join(", ") + '. Rotate through these in classes and WODs.</p>';
     return h;
   }
+  /* One shared strength solution for each theme with two or more movements rated 5 or below. */
+  function themesHtml(r) {
+    var by = {}, seen = {};
+    r.p.concat(r.s).forEach(function (m) {
+      var k = m.name.toLowerCase(); if (seen[k]) return; seen[k] = true;
+      var th = themeOf(m.name); if (th === "other" || !THEMES[th].shared) return;
+      (by[th] = by[th] || []).push(m);
+    });
+    var keys = Object.keys(by).filter(function (k) { return by[k].length >= 2; });
+    if (!keys.length) return "";
+    keys.sort(function (a, b) { return Math.min.apply(null, by[a].map(function (m) { return m.score; })) - Math.min.apply(null, by[b].map(function (m) { return m.score; })); });
+    return '<div class="sub-h">Common themes and the strength that carries across</div><ul class="themes">' + keys.map(function (k) {
+      return '<li><b>' + esc(THEMES[k].label) + '</b> <span class="fine">' + by[k].map(function (m) { return esc(m.name) + ' (' + m.score + ')'; }).join(", ") + '.</span> ' + esc(THEMES[k].shared) + '</li>';
+    }).join("") + '</ul>';
+  }
+  function lchmHtml() {
+    return '<dl class="lchm">' + LCHM_KEY.map(function (x) { return '<div><dt><i class="lm lm-' + x[0].charAt(0) + '">' + x[0] + '</i></dt><dd>' + esc(x[1]) + '</dd></div>'; }).join("") + '</dl>';
+  }
   function weekPlanHtml(r) {
     var D = weekDays(), P = state.profile, now = parseInt(P.nowDays, 10);
     var h = '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 1</h3>';
     if (!D) return h.replace(" · Week 1", "") + '<p class="empty">Add how many sessions a week you train now, and how many you could train, to see a day by day breakdown.</p></div>';
     if (!r.p.length && !r.s.length && !r.c6.length && !r.c7.length) return h.replace(" · Week 1", "") + '<p class="empty">Nothing is rated 7 or below. Normal classes are enough for now.</p></div>';
+    optCount = {};
     var counters = {}, w1 = buildWeek(r, D, null, counters), prior = {};
     w1.deferred.forEach(function (x) { prior[mkey(x.m)] = true; });
     var w2 = buildWeek(r, D, prior, counters);
-    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can. For the lowest scores, Practice lists an assistance exercise or skill that builds toward the movement, with the movement in small text. These are suggestions for a coach to confirm.</p>' + dayCards(w1, now) + '</div>';
-    h += '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 2</h3><p class="fine">Week 2 brings in movements that did not fit in week 1. Practice movements rated 0 to 2 stay in both weeks. Repeat the two weeks as a fortnight cycle until scores change.</p>' + dayCards(w2, now) + leftoverHtml(w1, w2, D) + '</div>';
+    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Movements that share a pattern, such as every kind of pull-up, share the week\'s practice and are not repeated more than three times. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can. For the lowest scores, Practice lists a way to build toward the movement. These are suggestions for a coach to confirm.</p>' + lchmHtml() + dayCards(w1, now) + themesHtml(r) + '</div>';
+    h += '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 2</h3><p class="fine">Week 2 brings in movements that did not fit in week 1, then repeats the lowest scores with a different way in (Lift, Carry, Hold or Mobilise). Repeat the two weeks as a fortnight cycle until scores change.</p>' + dayCards(w2, now) + leftoverHtml(w1, w2, D) + '</div>';
     return h;
   }
 
