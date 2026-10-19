@@ -1546,6 +1546,8 @@ body.pdf-mode #pdf-busy { display: flex; }
     "crossovers": { C: ["Slow single unders with crossed arms"] },
     "overhead squat": { C: ["Overhead squat with a PVC pipe, pause at the bottom", "Snatch balance"] }
   };
+  /* Background order for a session: open up positions (Mobilise), then Hold, then Carry, then the whole movement (Lift). */
+  var MODE_RANK = { M: 0, H: 1, C: 2, L: 3 };
   var MODE_NAME = { L: "Lift", C: "Carry", H: "Hold", M: "Mobilise" };
   var LCHM_KEY = [
     ["Lift", "Perform whole movements in training for conditioning sets, generally with full capability."],
@@ -1657,10 +1659,9 @@ body.pdf-mode #pdf-busy { display: flex; }
     return '<div class="week-days">' + w.days.map(function (d, i) {
       var cur = now >= 1 && i >= now ? '<span class="xtra">extra</span>' : "";
       return '<div class="daycol"><div class="day-h">Day ' + (i + 1) + cur + '</div>' + ["p", "s", "c"].map(function (k) {
-        return '<div class="day-l"><span class="chip ' + LAB[k][1] + '">' + LAB[k][0] + '</span>' + (d[k].length ? '<ul>' + d[k].map(function (e) {
+        return '<div class="day-l"><span class="chip ' + LAB[k][1] + '">' + LAB[k][0] + '</span>' + (d[k].length ? '<ul>' + (k === "p" ? d[k].slice().sort(function (x, y) { return (MODE_RANK[x.mode] || 0) - (MODE_RANK[y.mode] || 0); }) : d[k]).map(function (e) {
           var m = e.m, cat = m.cat && /barbell|dumbbell/i.test(m.cat) ? ' <small>' + esc(m.cat.replace(/ barbell/i, "")) + '</small>' : "";
-          var lm = e.mode ? '<i class="lm lm-' + e.mode + '">' + MODE_NAME[e.mode] + '</i> ' : "";
-          return '<li><span>' + lm + (e.a ? esc(e.a) + ' <small class="for">for ' + esc(m.name) + '</small>' : esc(m.name) + cat) + '</span><b class="n band-' + bandOf(m.score) + '">' + m.score + '</b></li>';
+          return '<li><span>' + (e.a ? esc(e.a) + ' <small class="for">for ' + esc(m.name) + '</small>' : esc(m.name) + cat) + '</span><b class="n band-' + bandOf(m.score) + '">' + m.score + '</b></li>';
         }).join("") + '</ul>' : '<span class="none">–</span>') + '</div>';
       }).join("") + '</div>';
     }).join("") + '</div>';
@@ -1703,8 +1704,8 @@ body.pdf-mode #pdf-busy { display: flex; }
     var counters = {}, w1 = buildWeek(r, D, null, counters), prior = {};
     w1.deferred.forEach(function (x) { prior[mkey(x.m)] = true; });
     var w2 = buildWeek(r, D, prior, counters);
-    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Movements that share a pattern, such as every kind of pull-up, share the week\'s practice and are not repeated more than three times. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can. For the lowest scores, Practice lists a way to build toward the movement. These are suggestions for a coach to confirm.</p>' + lchmHtml() + dayCards(w1, now) + themesHtml(r) + '</div>';
-    h += '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 2</h3><p class="fine">Week 2 brings in movements that did not fit in week 1, then repeats the lowest scores with a different way in (Lift, Carry, Hold or Mobilise). Repeat the two weeks as a fortnight cycle until scores change.</p>' + dayCards(w2, now) + leftoverHtml(w1, w2, D) + '</div>';
+    h += '<p class="fine">Built for ' + D + ' session' + (D === 1 ? "" : "s") + ' a week' + (now >= 1 ? ' (you train ' + now + ' now' + (D > now ? ', so Day ' + (now + 1) + (D > now + 1 ? " to Day " + D : "") + ' would be extra' : "") + ')' : "") + '. Lowest scores are placed first and spread across the week. Movements that share a pattern, such as every kind of pull-up, share the week\'s practice and are not repeated more than three times. Days are not tied to weekdays: put a rest or easier day between sessions that load the same movements where you can. For the lowest scores, Practice lists a way to build toward the movement, ordered so positions and mobility come first, then holds, then variations, then the full movement. These are suggestions for a coach to confirm.</p>' + dayCards(w1, now) + themesHtml(r) + '</div>';
+    h += '<div class="card ctx weekplan"><h3>Weekly breakdown · Week 2</h3><p class="fine">Week 2 brings in movements that did not fit in week 1, then repeats the lowest scores with a different way in. Repeat the two weeks as a fortnight cycle until scores change.</p>' + dayCards(w2, now) + leftoverHtml(w1, w2, D) + '</div>';
     return h;
   }
 
